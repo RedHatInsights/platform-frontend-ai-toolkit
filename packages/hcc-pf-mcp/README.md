@@ -54,23 +54,29 @@ Or using local installation:
 }
 ```
 
-### As Library
+### Available Tools
 
-You can also import functions from this package:
+Once the MCP server is running, these tools become available:
 
-```typescript
-import { greet } from '@redhat-cloud-services/hcc-pf-mcp';
-
-console.log(greet('Developer')); // "Hello, Developer from hcc-pf-mcp!"
-```
+- **getPatternFlyDataViewDescription** - Get comprehensive documentation about the @patternfly/react-data-view package and its capabilities
+- **getPatternFlyDataViewExample** - Get implementation examples for various scenarios:
+  - `minimalSetup` - Basic data view setup
+  - `commonUsage` - Common patterns and configurations
+  - `toolbarExample` - Toolbar integration examples
+  - `filters` - Filtering implementation
+  - `table` - Table component usage
+  - `resizeableColumns` - Resizable column setup
+  - `treeTable` - Tree table implementation
+  - `loadingState` - Loading state management
+  - `tableStates` - Various table state examples
 
 ## Features
 
 - Model Context Protocol (MCP) server implementation
 - @patternfly/react-data-view component assistance and examples
 - Implementation guidance for data tables, sorting, filtering, and pagination
+- Comprehensive documentation and code examples
 - TypeScript support
-- CLI and library usage
 
 ## License
 
