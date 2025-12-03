@@ -14,10 +14,12 @@ mkdir -p "$TARGET_DIR"
 echo "🔍 Discovering available agents..."
 
 # Fetch list of .mdc files from GitHub API
-agent_list=$(curl -s "$API_URL" | grep -o '"name":"[^"]*\.mdc"' | sed 's/"name":"//g' | sed 's/"//g')
+api_response=$(curl -s -w "HTTPSTATUS:%{http_code}" "$API_URL")
+http_status=$(echo "$api_response" | grep -o "HTTPSTATUS:[0-9]*" | cut -d: -f2)
+agent_list=$(echo "$api_response" | sed 's/HTTPSTATUS:[0-9]*$//' | grep -o '"name":"[^"]*\.mdc"' | sed 's/"name":"//g' | sed 's/"//g')
 
-if [ -z "$agent_list" ]; then
-    echo "❌ Failed to fetch agent list. Using fallback method..."
+if [ -z "$agent_list" ] || [ "$http_status" != "200" ]; then
+    echo "❌ Failed to fetch agent list (HTTP $http_status). Using fallback method..."
 
     # Fallback: try common agent names
     agent_list="hello-world.mdc
@@ -42,11 +44,22 @@ while IFS= read -r agent; do
         total_count=$((total_count + 1))
         echo "  📥 $agent"
 
-        if curl -s -f -o "$TARGET_DIR/$agent" "$BASE_URL/$agent"; then
+        # Download with status code capture
+        response=$(curl -s -w "HTTPSTATUS:%{http_code}" -o "$TARGET_DIR/$agent" "$BASE_URL/$agent")
+        http_code=$(echo "$response" | grep -o "HTTPSTATUS:[0-9]*" | cut -d: -f2)
+
+        if [ "$http_code" = "200" ]; then
             echo "    ✅ Downloaded successfully"
             success_count=$((success_count + 1))
         else
-            echo "    ❌ Download failed"
+            case "$http_code" in
+                "404") echo "    ❌ Download failed: File not found (HTTP 404)" ;;
+                "403") echo "    ❌ Download failed: Access forbidden (HTTP 403)" ;;
+                "000") echo "    ❌ Download failed: Network error or invalid URL" ;;
+                *) echo "    ❌ Download failed: HTTP $http_code" ;;
+            esac
+            # Remove partial/empty file on failure
+            rm -f "$TARGET_DIR/$agent"
         fi
     fi
 done <<< "$agent_list"
