@@ -1,3 +1,13 @@
+## 0.3.2 (2025-12-16)
+
+### 🩹 Fixes
+
+- make the build output cjs compatible ([0406d2f](https://github.com/RedHatInsights/platform-frontend-ai-toolkit/commit/0406d2f))
+
+### ❤️ Thank You
+
+- Martin Marosi @Hyperkid123
+
 ## 0.3.1 (2025-12-04)
 
 ### 🚀 Features
