@@ -213,9 +213,7 @@ params:
       set -ex
       # Start Caddy to serve app assets
       caddy run --config /etc/caddy/Caddyfile --adapter caddyfile
-  - name: app-caddy-config
-    value: "your-app-name-app-caddy-config"
-  - name: dev-proxy-caddyfile
+  - name: frontend-proxy-routes-configmap
     value: "your-app-name-dev-proxy-caddyfile"
   - name: e2e-tests-script
     value: |
@@ -611,8 +609,7 @@ Solution:
    - `test-app-port` - App assets port (usually 8000)
    - `chrome-port` - Chrome assets port (usually 9912)
    - `run-app-script` - Script to start Caddy server
-   - `app-caddy-config` - ConfigMap name for app Caddyfile
-   - `dev-proxy-caddyfile` - ConfigMap name for proxy Caddyfile
+   - `frontend-proxy-routes-configmap` - ConfigMap name for proxy routes (the dev-proxy Caddyfile)
    - `e2e-tests-script` - Script to run Playwright tests
    - `e2e-credentials-secret` - Secret name for credentials
 
@@ -627,12 +624,16 @@ Solution:
          # Start Caddy to serve app assets
          caddy run --config /etc/caddy/Caddyfile --adapter caddyfile
 
-     - name: app-caddy-config
-       value: "your-app-name-app-caddy-config"
+     - name: frontend-proxy-routes-configmap
+       value: "your-app-name-dev-proxy-caddyfile"
    ```
 
 3. Verify against working examples or this agent's Pattern 1c
 4. Check that ConfigMap names match what was submitted to konflux-release-data
+
+**Important Note about ConfigMaps:**
+- **frontend-proxy-routes-configmap**: This is a pipeline parameter that references your `<app>-dev-proxy-caddyfile` ConfigMap. It contains routing rules for the proxy sidecar.
+- **<app>-app-caddy-config**: This ConfigMap contains the Caddyfile for serving your app's static assets. It's NOT a pipeline parameter - it needs to be incorporated into your container image (typically copied during the Docker build). The `run-app-script` expects to find this at `/etc/caddy/Caddyfile` inside the container.
 
 ## IMPLEMENTATION PATTERNS
 
@@ -819,9 +820,7 @@ than creating a duplicate file with a different name.
            set -ex
            # Start Caddy to serve app assets on port 8000
            caddy run --config /etc/caddy/Caddyfile --adapter caddyfile
-       - name: app-caddy-config
-         value: "your-app-name-app-caddy-config"
-       - name: dev-proxy-caddyfile
+       - name: frontend-proxy-routes-configmap
          value: "your-app-name-dev-proxy-caddyfile"
        - name: e2e-tests-script
          value: |
@@ -1027,8 +1026,7 @@ Before considering setup complete, verify:
   - [ ] `test-app-port` - Port for app assets (usually 8000)
   - [ ] `chrome-port` - Port for chrome assets (usually 9912)
   - [ ] `run-app-script` - Script to start Caddy server serving app assets
-  - [ ] `app-caddy-config` - ConfigMap name for app Caddyfile
-  - [ ] `dev-proxy-caddyfile` - ConfigMap name for proxy Caddyfile
+  - [ ] `frontend-proxy-routes-configmap` - ConfigMap name for proxy routes (Caddyfile with routing rules)
   - [ ] `e2e-tests-script` - Script to run Playwright tests
   - [ ] `e2e-credentials-secret` - Secret name for test credentials
 - [ ] `serviceAccountName` matches the application
