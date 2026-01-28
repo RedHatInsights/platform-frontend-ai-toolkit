@@ -483,7 +483,7 @@ params:
 
 **Important Notes:**
 - The ExternalSecret creates a Kubernetes Secret that the pipeline can consume
-- Secret keys (e2e-user, e2e-password) must match what the tests expect
+- All 4 secret keys are required: e2e-user, e2e-password, e2e-hcc-env-url, e2e-stage-actual-hostname
 - The pipeline automatically mounts the secret into the test container
 - Credentials refresh every 15 minutes from Vault
 
@@ -566,9 +566,13 @@ Solution:
    ```bash
    kubectl get secret <app-name>-credentials-secret -n <namespace>
    ```
-3. Verify Vault path and credentials exist (refer to Platform Engineer Survival Guide)
+3. Verify Vault path and credentials exist with all 4 required properties (refer to Platform Engineer Survival Guide):
+   - username
+   - password
+   - e2e-hcc-env-url
+   - e2e-stage-actual-hostname
 4. Ensure pipeline parameter matches ExternalSecret metadata.name
-5. Check secret keys match what tests expect (e2e-user, e2e-password, etc.)
+5. Check ExternalSecret has all 4 required secret key mappings
 
 **Common Issue 5: Asset Routing Problems**
 
@@ -714,12 +718,15 @@ Follow this workflow to create the ExternalSecret that provides access to Vault 
    - Application name (e.g., "insights-rbac-ui")
    - Konflux namespace (e.g., "rh-platform-experien-tenant")
    - Vault path (follows pattern: creds/konflux/<app-name>)
-   - Required secret keys (at minimum: e2e-user, e2e-password)
+   - Required secret keys: e2e-user, e2e-password, e2e-hcc-env-url, e2e-stage-actual-hostname
 
 2. Verify Vault Credentials Exist:
    - Confirm credentials are stored in Vault at creds/konflux/<app-name>
-   - Ensure properties exist: username, password
-   - Add optional properties if needed: e2e-hcc-env-url, e2e-stage-actual-hostname
+   - Ensure all 4 required properties exist:
+     - username (mapped to e2e-user)
+     - password (mapped to e2e-password)
+     - e2e-hcc-env-url (HCC environment URL)
+     - e2e-stage-actual-hostname (Stage environment hostname)
    - Refer to Platform Engineer Survival Guide for Vault access
 
 3. Generate ExternalSecret YAML:
@@ -748,11 +755,19 @@ Follow this workflow to create the ExternalSecret that provides access to Vault 
          remoteRef:
            key: creds/konflux/<app-name>
            property: password
+       - secretKey: e2e-hcc-env-url
+         remoteRef:
+           key: creds/konflux/<app-name>
+           property: e2e-hcc-env-url
+       - secretKey: e2e-stage-actual-hostname
+         remoteRef:
+           key: creds/konflux/<app-name>
+           property: e2e-stage-actual-hostname
 
 4. Customize for Your App:
    - Replace <app-name> with your application name
    - Replace <namespace> with your Konflux namespace
-   - Add/remove data entries based on what your tests need
+   - All 4 data entries (e2e-user, e2e-password, e2e-hcc-env-url, e2e-stage-actual-hostname) are required by the E2E pipeline
    - Save the file
 
 5. Submit to konflux-release-data:
@@ -1039,12 +1054,13 @@ Before considering setup complete, verify:
   - [ ] Merge request submitted and approved
 - [ ] Vault credentials created for E2E tests:
   - [ ] Credentials stored in Vault at `creds/konflux/<app-name>`
-  - [ ] username property set (E2E_USER)
-  - [ ] password property set (E2E_PASSWORD)
-  - [ ] Optional properties configured if needed (e2e-hcc-env-url, e2e-stage-actual-hostname)
+  - [ ] username property set (mapped to e2e-user)
+  - [ ] password property set (mapped to e2e-password)
+  - [ ] e2e-hcc-env-url property set (HCC environment URL)
+  - [ ] e2e-stage-actual-hostname property set (Stage hostname)
 - [ ] ExternalSecret YAML generated and submitted to konflux-release-data:
   - [ ] ExternalSecret YAML created with correct app name and namespace
-  - [ ] Secret keys match test requirements (e2e-user, e2e-password, etc.)
+  - [ ] All 4 required secret keys configured (e2e-user, e2e-password, e2e-hcc-env-url, e2e-stage-actual-hostname)
   - [ ] Added to kustomization.yaml
   - [ ] Merge request submitted and approved
 - [ ] Pipeline references correct credentials secret name
