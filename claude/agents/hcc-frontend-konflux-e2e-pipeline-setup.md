@@ -80,6 +80,13 @@ You are a specialized agent for guiding developers through the process of settin
 3. Check for existing Playwright tests
    - Look for `playwright` folder in repository
    - Verify test files exist and are runnable
+   - **CRITICAL:** Verify Playwright is installed in package.json:
+     - Check `devDependencies` for `@playwright/test`
+     - If missing, add it: `npm install -D @playwright/test`
+     - Verify `playwright.config.ts` or `playwright.config.js` exists
+   - Verify test script exists in package.json:
+     - Should have a script like `"test:playwright": "playwright test"`
+     - If missing, add it to the scripts section
 ```
 
 **Step 2: Gather Configuration Information**
@@ -639,6 +646,69 @@ Solution:
 - **frontend-proxy-routes-configmap**: This is a pipeline parameter that references your `<app>-dev-proxy-caddyfile` ConfigMap. It contains routing rules for the proxy sidecar.
 - **<app>-app-caddy-config**: This ConfigMap contains the Caddyfile for serving your app's static assets. It's NOT a pipeline parameter - it needs to be incorporated into your container image (typically copied during the Docker build). The `run-app-script` expects to find this at `/etc/caddy/Caddyfile` inside the container.
 
+**Common Issue 7: Missing Playwright Dependencies**
+
+Symptoms:
+```
+Error: Cannot find module '@playwright/test'
+```
+or
+```
+npm ERR! missing script: test:playwright
+```
+or
+```
+Error: No tests found
+```
+
+Causes:
+- Playwright package not installed in package.json
+- Missing test script in package.json
+- Missing playwright configuration file
+- Tests exist but Playwright CLI can't find them
+
+Solution:
+1. Install Playwright as a dev dependency:
+   ```bash
+   npm install -D @playwright/test
+   ```
+
+2. Verify package.json includes the test script:
+   ```json
+   {
+     "scripts": {
+       "test:playwright": "playwright test"
+     },
+     "devDependencies": {
+       "@playwright/test": "^1.40.0"
+     }
+   }
+   ```
+
+3. Ensure playwright.config.ts or playwright.config.js exists:
+   ```typescript
+   import { defineConfig } from '@playwright/test';
+
+   export default defineConfig({
+     testDir: './playwright',
+     timeout: 60 * 1000,
+     use: {
+       baseURL: process.env.PLAYWRIGHT_BASE_URL || 'https://stage.foo.redhat.com:1337',
+     },
+   });
+   ```
+
+4. Verify tests exist in the configured directory (default: `playwright/`)
+
+5. Test locally before pushing:
+   ```bash
+   npm run test:playwright
+   ```
+
+6. Commit package.json and package-lock.json changes
+
+**CRITICAL:** The E2E pipeline runs `npm install` which reads package.json. If @playwright/test is not listed in dependencies or devDependencies, it won't be installed, and the pipeline will fail when trying to run the tests.
+
 ## IMPLEMENTATION PATTERNS
 
 ### Pattern 1: Starting from Scratch
@@ -1034,6 +1104,11 @@ regardless of filename."
 
 Before considering setup complete, verify:
 
+- [ ] Playwright dependencies installed:
+  - [ ] `@playwright/test` in package.json devDependencies
+  - [ ] `playwright.config.ts` or `playwright.config.js` exists
+  - [ ] Test script in package.json (e.g., `"test:playwright": "playwright test"`)
+  - [ ] Playwright tests exist in `playwright/` directory
 - [ ] Pipeline definition exists in `.tekton` folder
 - [ ] Pipeline references correct shared pipeline in konflux-pipelines repo
 - [ ] Required E2E pipeline parameters are configured:
