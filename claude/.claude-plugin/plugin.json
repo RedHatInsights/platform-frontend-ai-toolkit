@@ -1,7 +1,7 @@
 {
   "name": "hcc-frontend-ai-toolkit",
-  "version": "1.3.4",
-  "description": "A collection of custom Claude Code agents for frontend development teams",
+  "version": "1.4.0",
+  "description": "A collection of custom Claude Code agents for frontend development and infrastructure teams",
   "author": {
     "name": "Martin Marosi",
     "email": "marvusm.mmi@gmail.com",

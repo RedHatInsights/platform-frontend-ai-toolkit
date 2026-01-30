@@ -19,7 +19,9 @@ const AGENT_GLOBS = {
   'css-utility': '**/*.{tsx,jsx,css,scss}',
   'dataview': '**/*.{tsx,jsx}',
   'component-builder': '**/*.{tsx,jsx}',
-  'hello-world': '**/*'
+  'hello-world': '**/*',
+  'db-upgrade': '**/*.{yml,yaml}',
+  'infrastructure': '**/*.{yml,yaml,tf,json}'
 };
 
 function determineGlobs(agentName, capabilities = []) {
@@ -35,6 +37,7 @@ function determineGlobs(agentName, capabilities = []) {
   if (name.includes('dataview')) return AGENT_GLOBS.dataview;
   if (name.includes('component-builder') || name.includes('patternfly')) return AGENT_GLOBS['component-builder'];
   if (name.includes('hello-world')) return AGENT_GLOBS['hello-world'];
+  if (name.includes('db-upgrade') || name.includes('infra')) return AGENT_GLOBS['db-upgrade'];
 
   // Default for frontend agents
   return AGENT_GLOBS.patternfly;
@@ -158,13 +161,16 @@ function main() {
   // Get all .md files from claude/agents
   const agentFiles = fs.readdirSync(claudeAgentsDir)
     .filter(file => file.endsWith('.md'))
-    .filter(file => file.startsWith('hcc-frontend-'));
+    .filter(file => file.startsWith('hcc-frontend-') || file.startsWith('hcc-infra-'));
 
   console.log(`🔄 Converting ${agentFiles.length} Claude agents to Cursor format...\n`);
 
   agentFiles.forEach(file => {
     const inputPath = path.join(claudeAgentsDir, file);
-    const outputName = file.replace('hcc-frontend-', '').replace('.md', '.mdc');
+    const outputName = file
+      .replace('hcc-frontend-', '')
+      .replace('hcc-infra-', '')
+      .replace('.md', '.mdc');
     const outputPath = path.join(cursorRulesDir, outputName);
 
     try {
