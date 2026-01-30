@@ -1,6 +1,9 @@
 ---
-description: "Creates SQL query for post-upgrade VACUUM and REINDEX operations"
-globs: "**/*.{yml,yaml}"
+description: Creates SQL query for post-upgrade VACUUM and REINDEX operations
+capabilities:
+  - Creates app-interface SQL query YAML file for database maintenance
+  - Generates VACUUM and REINDEX SQL queries
+  - Creates pull request for post-maintenance operations
 ---
 
 # HCC Frontend DB Upgrade Post Maintenance Agent

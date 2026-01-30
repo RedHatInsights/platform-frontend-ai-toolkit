@@ -1,6 +1,8 @@
 ---
-description: "Removes blue/green deployment configuration after successful database upgrade"
-globs: "**/*.{yml,yaml}"
+description: Removes blue/green deployment configuration after successful database upgrade
+capabilities:
+  - Removes blue_green_deployment section from namespace YAML
+  - Creates pull request for cleanup
 ---
 
 # HCC Frontend DB Upgrade Cleanup Agent

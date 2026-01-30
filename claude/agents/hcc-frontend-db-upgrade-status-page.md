@@ -1,6 +1,9 @@
 ---
-description: "Creates status page maintenance incident for production database upgrades"
-globs: "**/*.{yml,yaml}"
+description: Creates status page maintenance incident for production database upgrades
+capabilities:
+  - Creates statuspage maintenance announcement YAML files
+  - Updates status page component reference
+  - Creates pull request for status page changes
 ---
 
 # HCC Frontend DB Upgrade Status Page Agent

@@ -1,6 +1,10 @@
 ---
-description: "Orchestrates RDS database upgrade process by analyzing state and delegating to specialized sub-agents"
-globs: "**/*.{yml,yaml}"
+description: Orchestrates RDS database upgrade process by analyzing state and delegating to specialized sub-agents
+capabilities:
+  - Analyzes app-interface repository state to determine upgrade progress
+  - Identifies current environment (stage/production)
+  - Delegates to appropriate sub-agent based on workflow state
+  - Tracks multi-step DB upgrade workflow
 ---
 
 # HCC Frontend DB Upgrade Orchestrator

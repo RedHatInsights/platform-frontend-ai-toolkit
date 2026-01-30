@@ -1,6 +1,9 @@
 ---
-description: "Performs RDS blue/green deployment switchover by updating namespace and RDS configuration"
-globs: "**/*.{yml,yaml}"
+description: Performs RDS blue/green deployment switchover by updating namespace and RDS configuration
+capabilities:
+  - Modifies namespace YAML to enable switchover and deletion
+  - Updates RDS configuration with new engine version
+  - Creates pull request for database switchover
 ---
 
 # HCC Frontend DB Upgrade Switchover Agent

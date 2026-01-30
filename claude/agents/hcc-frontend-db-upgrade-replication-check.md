@@ -1,6 +1,9 @@
 ---
-description: "Creates SQL query to check for active replication slots before database upgrade"
-globs: "**/*.{yml,yaml}"
+description: Creates SQL query to check for active replication slots before database upgrade
+capabilities:
+  - Creates app-interface SQL query YAML file
+  - Generates SQL queries to check pg_publication and pg_replication_slots
+  - Creates pull request for replication slot verification
 ---
 
 # HCC Frontend DB Upgrade Replication Check Agent
