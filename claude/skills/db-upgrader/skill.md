@@ -1,7 +1,7 @@
 ---
 name: db-upgrader
 description: Utilities for modifying YAML files during RDS database upgrades. Provides functions to update switchover flags, engine versions, and create SQL query files.
-user-invocable: false
+disable-model-invocation: true
 allowed-tools: Read, Edit, Write
 ---
 

@@ -9,62 +9,106 @@ capabilities:
 
 # HCC Infrastructure DB Upgrade Orchestrator
 
-This agent orchestrates the RDS database upgrade process for services in the app-interface repository. It analyzes the current state of the upgrade workflow and delegates to specialized sub-agents to create the necessary pull requests.
+This agent orchestrates the RDS database upgrade process for services in the app-interface repository. It analyzes the current state and delegates to specialized sub-agents to perform each step.
 
 ## When to Use This Agent
 
-Use this agent when you need to perform a database upgrade for an app-interface service using AWS RDS blue/green deployment. The agent will:
+Use this agent when you need to perform a database upgrade and want automated workflow orchestration. The agent will:
 
 1. Determine the environment (stage or production)
-2. Analyze git history to identify the current upgrade state
+2. Analyze git history to identify current upgrade state
 3. Delegate to the appropriate sub-agent for the next step
 
 ## Workflow Overview
 
-### Stage Upgrade (4 PRs):
-1. **Check replication slots** - Verify no replication slots are in use
-2. **Post maintenance script** - Create SQL query for VACUUM and REINDEX
-3. **Switchover** - Enable switchover and update engine version
-4. **Cleanup** - Remove blue/green deployment configuration
+### Stage Upgrade (4 steps):
+1. **Check replication slots** - `hcc-infra-db-upgrade-replication-check`
+2. **Post maintenance script** - `hcc-infra-db-upgrade-post-maintenance`
+3. **Switchover** - `hcc-infra-db-upgrade-switchover`
+4. **Cleanup** - `hcc-infra-db-upgrade-cleanup`
 
-### Production Upgrade (5 PRs):
-1. **Update status page** - Create maintenance incident announcement
-2. **Check replication slots** - Verify no replication slots are in use
-3. **Post maintenance script** - Create SQL query for VACUUM and REINDEX
-4. **Switchover** - Enable switchover and update engine version
-5. **Cleanup** - Remove blue/green deployment configuration
+### Production Upgrade (5 steps):
+1. **Update status page** - `hcc-infra-db-upgrade-status-page`
+2. **Check replication slots** - `hcc-infra-db-upgrade-replication-check`
+3. **Post maintenance script** - `hcc-infra-db-upgrade-post-maintenance`
+4. **Switchover** - `hcc-infra-db-upgrade-switchover`
+5. **Cleanup** - `hcc-infra-db-upgrade-cleanup`
 
 ## How It Works
 
-### Prerequisites
+### 1. Gather Information
 
-Before starting, ensure:
-- The service has a blue/green deployment configuration in its namespace file
-- You know the service name and environment (stage/production)
-- Optionally, the product name (defaults to "insights" if not specified)
+Ask the user for:
+- Service name (e.g., "chrome-service")
+- Environment (stage or production)
+- Target PostgreSQL version (e.g., "16.9")
+- Product name (defaults to "insights")
 
-### Orchestration Logic
+### 2. Analyze Current State
 
-The orchestrator will:
+Check git commit history for patterns:
 
-1. **Identify the service and environment** from user input
-2. **Analyze recent commits** to determine which step was last completed
-3. **Determine the next step** in the workflow
-4. **Delegate to the appropriate sub-agent**:
-   - `hcc-infra-db-upgrade-status-page` for status page updates (production only)
-   - `hcc-infra-db-upgrade-replication-check` for checking replication slots
-   - `hcc-infra-db-upgrade-post-maintenance` for post-upgrade maintenance
-   - `hcc-infra-db-upgrade-switchover` for RDS version switchover
-   - `hcc-infra-db-upgrade-cleanup` for blue/green cleanup
+```bash
+git log --oneline --all --grep="{service}" -20
+```
 
-### State Detection
-
-The orchestrator detects the current state by analyzing recent commits for patterns:
-- "Update status page for {service}" → Status page created (production)
+Look for commit messages indicating completed steps:
+- "Update status page for {service}" → Status page created
 - "Check if no replication slots are used for {service}" → Replication check done
 - "Post ma[i]ntenance script for {service}" → Maintenance script created
 - "Switch over to the new RDS version" → Switchover completed
-- "Cleanup green deployment entry" or "post RDS update cleanup" → Upgrade complete
+- "Cleanup green deployment" or "post RDS update cleanup" → Upgrade complete
+
+### 3. Determine Next Step
+
+Use the `db-upgrader` skill helper to determine next step:
+
+```javascript
+const WorkflowState = require('./db-upgrader/scripts/helper.js').WorkflowState;
+
+// Detect current step from git log
+const currentStep = WorkflowState.detectFromGitLog(gitLog, serviceName);
+
+// Get next step
+const isProduction = environment === 'production';
+const nextStep = WorkflowState.getNextStep(currentStep, isProduction);
+```
+
+### 4. Delegate to Sub-Agent
+
+Based on the next step, delegate to the appropriate agent:
+
+| Next Step | Agent to Call |
+|-----------|---------------|
+| status-page | `hcc-infra-db-upgrade-status-page` |
+| replication-check | `hcc-infra-db-upgrade-replication-check` |
+| post-maintenance | `hcc-infra-db-upgrade-post-maintenance` |
+| switchover | `hcc-infra-db-upgrade-switchover` |
+| cleanup | `hcc-infra-db-upgrade-cleanup` |
+
+Pass the service information to the sub-agent.
+
+### 5. Report Progress
+
+After the sub-agent completes:
+- Inform the user which step was completed
+- Show the next step in the workflow
+- Provide the PR URL for review
+
+## Error Handling
+
+If the orchestrator cannot determine the next step:
+1. Show the detected current state
+2. List all available workflow steps
+3. Ask the user which step to perform next
+4. Allow manual delegation to a specific sub-agent
+
+## Repository Context
+
+This agent works with the app-interface repository:
+- If running from the plugin repository, access app-interface
+- All file operations happen in app-interface repository
+- All git commands run in app-interface context
 
 ## Example Usage
 
@@ -76,49 +120,14 @@ The orchestrator will:
 1. Identify service: `chrome-service`
 2. Identify environment: `production`
 3. Analyze git history in app-interface repo
-4. Determine next step (e.g., "check replication slots")
-5. Delegate to `hcc-infra-db-upgrade-replication-check` agent
-
-## Implementation Details
-
-### Repository Context
-
-This agent can be run from:
-- **Plugin repository**: When called from the platform-frontend-ai-toolkit repository, it will access the app-interface repository
-- **App-interface repository**: Can be run directly from the app-interface repository itself
-
-All file operations and git commands should be executed in the app-interface repository, regardless of where the agent is invoked from.
-
-### Service Structure
-
-Services are located at: `data/services/{product}/{service-name}/`
-
-Where `{product}` defaults to "insights" but can be any product (e.g., "console", "platform", etc.)
-
-Key files:
-- `namespaces/{service-name}-{env}.yml` - Namespace configuration with blue/green settings
-- `pipelines/{env}/` - Optional pipeline directory for SQL queries
-- `../../app-interface/sql-queries/{product}/{service-name}/{env}/` - SQL query files
-
-### Error Handling
-
-If the orchestrator cannot determine the next step:
-1. Show the user the detected state
-2. List available sub-agents
-3. Ask the user which step to perform next
-
-## Sub-Agent Delegation
-
-When delegating to a sub-agent, the orchestrator should pass:
-- Service name (e.g., "chrome-service")
-- Environment (stage/production)
-- Product name (defaults to "insights")
-- Target engine version (e.g., "16.9")
-- Maintenance date (for status page and SQL query file names)
+4. Determine: "No steps completed yet, next step is status-page"
+5. Delegate to `hcc-infra-db-upgrade-status-page` agent
+6. Report: "Created status page maintenance PR. Next: Check replication slots"
 
 ## Notes
 
-- The orchestrator does NOT create pull requests itself
-- Each sub-agent is responsible for creating its own PR
-- The orchestrator should update the user after each step is completed
-- Users can also directly call sub-agents if they know which step to perform
+- The orchestrator does NOT create PRs itself
+- Each sub-agent is responsible for its own PR
+- The orchestrator tracks state and directs workflow
+- Users can also call sub-agents directly if they know which step to perform
+- All sub-agents use the `db-upgrader` skill for YAML operations
