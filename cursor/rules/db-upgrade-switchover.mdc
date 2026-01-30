@@ -1,0 +1,223 @@
+---
+description: "Performs RDS blue/green deployment switchover by updating namespace and RDS configuration"
+globs: "**/*.{yml,yaml}"
+---
+
+# HCC Infrastructure DB Upgrade Switchover Agent
+
+This agent performs the actual RDS blue/green deployment switchover by modifying the namespace and RDS configuration files. This step triggers AWS to switch from the old database instance to the upgraded one.
+
+## When to Use This Agent
+
+Use this agent when:
+- You need to perform the actual database version switchover
+- This is **step 3 for stage** or **step 4 for production** in the upgrade workflow
+- After post-maintenance scripts have been prepared
+- The blue/green deployment is ready and tested
+
+## What This Agent Does
+
+The agent will:
+
+1. Modify the namespace YAML file to enable switchover and deletion
+2. Update the RDS configuration file with the new engine version
+3. Create a pull request with the changes
+
+## Prerequisites
+
+- Service name (e.g., "chrome-service")
+- Environment (stage or production)
+- Target PostgreSQL version (e.g., "16.9")
+- Product name (defaults to "insights" if not specified)
+
+## File Structure
+
+### Files Modified:
+
+1. **Namespace file**:
+   ```
+   data/services/{product}/{service-name}/namespaces/{service-name}-{env}.yml
+   ```
+
+2. **RDS configuration file**:
+   ```
+   resources/terraform/resources/{product}/{environment}/rds/postgres{major_version}-rds-{service-identifier}.yml
+   ```
+
+**Note**: `{product}` defaults to "insights" if not specified
+
+## Implementation Steps
+
+### 1. Gather Information
+
+Ask the user for:
+- Service name (e.g., "chrome-service")
+- Environment (stage or production)
+- Product name (default: "insights")
+- Target engine version (e.g., "16.9")
+
+Derive:
+- Service identifier (typically the service name or shortened version)
+- Major PostgreSQL version (e.g., "16" from "16.9")
+- Current engine version (from RDS file)
+
+### 2. Locate Files
+
+**Namespace file**:
+```
+data/services/{product}/{service-name}/namespaces/{service-name}-{env}.yml
+```
+
+**RDS file** (find by searching for the pattern):
+```
+resources/terraform/resources/{product}/{environment}/rds/postgres*-rds-*{service}*.yml
+```
+
+Examples (using default product "insights"):
+- `resources/terraform/resources/insights/stage/rds/postgres16-rds-chrome-backend-service-stage.yml`
+- `resources/terraform/resources/insights/production/rds/postgres16-rds-chrome-backend-service-prod.yml`
+
+### 3. Modify Namespace File
+
+In the namespace file, find the `blue_green_deployment` section and update:
+
+**Before**:
+```yaml
+externalResources:
+- provider: rds
+  # ... other config ...
+  blue_green_deployment:
+    enabled: true
+    switchover: false    # ← Change this
+    delete: false        # ← Change this
+    target:
+      engine_version: "16.9"
+```
+
+**After**:
+```yaml
+externalResources:
+- provider: rds
+  # ... other config ...
+  blue_green_deployment:
+    enabled: true
+    switchover: true     # ← Changed to true
+    delete: true         # ← Changed to true
+    target:
+      engine_version: "16.9"
+```
+
+### 4. Update RDS Configuration File
+
+In the RDS configuration file, update the `engine_version`:
+
+**Before**:
+```yaml
+engine_version: "16.4"  # Old version
+```
+
+**After**:
+```yaml
+engine_version: "16.9"  # New version (should match target.engine_version)
+```
+
+### 5. Create Pull Request
+
+Create a pull request with:
+- **Title**: `Switch over to the new RDS version of {service} for {environment}`
+- **Branch name**: `{service}-{env}-switchover-{date}`
+- **Commit message**: `{service} {env} db upgrade - switch over to the new RDS {version_description} instance class`
+
+**Note**: The version description might include "graviton" or other instance details
+
+## Example
+
+For `chrome-service` stage switchover to PostgreSQL 16.9:
+
+**Namespace file modified** (using default product "insights"):
+```
+data/services/insights/chrome-service/namespaces/chrome-service-stage.yml
+```
+
+**Changes**:
+```diff
+   blue_green_deployment:
+     enabled: true
+-    switchover: false
+-    delete: false
++    switchover: true
++    delete: true
+     target:
+       engine_version: "16.9"
+```
+
+**RDS file modified**:
+```
+resources/terraform/resources/insights/stage/rds/postgres16-rds-chrome-backend-service-stage.yml
+```
+
+**Changes**:
+```diff
+-engine_version: "16.4"
++engine_version: "16.9"
+```
+
+**Pull request**: "Switch over to the new RDS version of chrome service for stage"
+
+## What This Does
+
+### When Applied:
+
+1. **`switchover: true`** triggers AWS RDS to:
+   - Promote the green (upgraded) instance to primary
+   - Redirect all traffic to the new instance
+   - Demote the blue (old) instance to standby
+
+2. **`delete: true`** triggers AWS RDS to:
+   - Delete the old blue instance after switchover completes
+   - Clean up associated resources
+
+3. **`engine_version` update** ensures:
+   - Terraform state matches the actual database version
+   - Future deployments use the correct version
+
+### Downtime
+
+- **Minimal downtime**: Typically 1-5 minutes
+- **Automatic failover**: AWS handles the promotion
+- **Connection strings unchanged**: Application doesn't need updates
+
+## Validation
+
+Before creating the PR, verify:
+- ✅ The namespace file has `switchover: true` and `delete: true`
+- ✅ The RDS file has the new `engine_version`
+- ✅ The engine version in both files matches
+- ✅ Both files exist and are in the correct location
+- ✅ YAML syntax is valid
+- ✅ No other unintended changes
+
+## Rollback Considerations
+
+If issues occur:
+- The old instance remains available briefly
+- Can switch back before deletion completes
+- Coordinate with the team before applying
+- Monitor application health during switchover
+
+## Notes
+
+- This is the most critical step in the upgrade process
+- Triggers the actual database switchover
+- Irreversible once the old instance is deleted
+- Coordinate with the team before merging
+- Monitor application logs and metrics during switchover
+- The switchover happens when the PR is merged and applied by app-interface automation
+
+## Next Steps
+
+After this PR is merged and the switchover completes:
+1. **Monitor** the application for any issues
+2. **Verify** the new database version is running
+3. **Check** application logs and metrics
+4. **Proceed** to step 5 - Cleanup (`hcc-infra-db-upgrade-cleanup`)

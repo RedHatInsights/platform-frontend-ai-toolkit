@@ -176,6 +176,8 @@ git commit -m "feat: update example agent"
 
 ## Available Agents
 
+### Frontend Development Agents
+
 - **hcc-frontend-hello-world** - Simple greeting agent to verify plugin installation and functionality
 - **hcc-frontend-patternfly-component-builder** - Expert in creating PatternFly React components for forms, layouts, navigation, and modals
 - **hcc-frontend-patternfly-dataview-specialist** - Expert in PatternFly DataView components for tables, lists, and data grids
@@ -187,7 +189,18 @@ git commit -m "feat: update example agent"
 - **hcc-frontend-dependency-cleanup-agent** - Expert in safely removing files and cleaning up orphaned dependencies
 - **hcc-frontend-weekly-report** - Expert in generating weekly team reports by analyzing JIRA issues (user provides team identification criteria)
 
-All agents use the `hcc-frontend-` prefix to avoid name collisions with other plugins and built-in agents.
+### Infrastructure Agents
+
+- **hcc-infra-db-upgrade-orchestrator** - Orchestrates RDS database upgrades by analyzing state and delegating to specialized sub-agents
+- **hcc-infra-db-upgrade-status-page** - Creates status page maintenance announcements for production database upgrades
+- **hcc-infra-db-upgrade-replication-check** - Creates SQL queries to verify no active replication slots before DB upgrade
+- **hcc-infra-db-upgrade-post-maintenance** - Creates post-upgrade VACUUM and REINDEX maintenance scripts
+- **hcc-infra-db-upgrade-switchover** - Performs RDS blue/green deployment switchover
+- **hcc-infra-db-upgrade-cleanup** - Removes blue/green deployment configuration after successful upgrade
+
+📋 **For detailed database upgrade documentation**, see: [DB_UPGRADE_AGENTS.md](DB_UPGRADE_AGENTS.md)
+
+All agents use either the `hcc-frontend-` or `hcc-infra-` prefix to avoid name collisions with other plugins and built-in agents.
 
 ## Using the Toolkit
 
