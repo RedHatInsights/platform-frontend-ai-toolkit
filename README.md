@@ -219,15 +219,22 @@ The toolkit includes a powerful weekly reporting feature that automatically anal
 Add the following to your Claude Code MCP settings:
 
 ```json
-{
-  "mcpServers": {
-    "mcp-atlassian": {
-      "command": "npx",
-      "args": ["-y", "@sooperset/mcp-atlassian"],
-      "env": {
-        "JIRA_BASE_URL": "https://issues.redhat.com",
-        "JIRA_PERSONAL_TOKEN": "your-jira-personal-access-token"
-      }
+"mcpServers": {
+  "mcp-atlassian": {
+    "command": "podman",
+    "args": [
+      "run",
+      "-i",
+      "--rm",
+      "-e",
+      "JIRA_URL",
+      "-e",
+      "JIRA_PERSONAL_TOKEN",
+      "ghcr.io/sooperset/mcp-atlassian:latest"
+    ],
+    "env": {
+      "JIRA_URL": "https://issues.redhat.com",
+      "JIRA_PERSONAL_TOKEN": "your-jira-personal-access-token"
     }
   }
 }
