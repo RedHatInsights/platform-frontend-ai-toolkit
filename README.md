@@ -188,6 +188,8 @@ git commit -m "feat: update example agent"
 - **hcc-frontend-react-patternfly-code-quality-scanner** - Expert in scanning React + PatternFly projects for anti-patterns and technical debt
 - **hcc-frontend-dependency-cleanup-agent** - Expert in safely removing files and cleaning up orphaned dependencies
 - **hcc-frontend-weekly-report** - Expert in generating weekly team reports by analyzing JIRA issues (user provides team identification criteria)
+- **hcc-frontend-yaml-setup-specialist** - Expert in creating frontend.yaml files for new applications with proper FEO configuration
+- **hcc-frontend-feo-migration-specialist** - Expert in migrating existing apps from static Chrome configuration to Frontend Operator managed system
 
 ### Infrastructure Agents
 
@@ -201,6 +203,27 @@ git commit -m "feat: update example agent"
 📋 **For detailed database upgrade documentation**, see: [DB_UPGRADE_AGENTS.md](DB_UPGRADE_AGENTS.md)
 
 All agents use either the `hcc-frontend-` or `hcc-infra-` prefix to avoid name collisions with other plugins and built-in agents.
+
+### Frontend Operator (FEO) Configuration Agents
+
+The toolkit includes specialized agents for Frontend Operator configuration management:
+
+- **hcc-frontend-yaml-setup-specialist** - Creates complete frontend.yaml files from scratch for new applications, including proper FEO configuration, module setup, navigation bundle segments, service tiles, and search entries
+- **hcc-frontend-feo-migration-specialist** - Migrates existing applications from static Chrome service backend configuration to Frontend Operator managed system, handling navigation, service tiles, fed-modules.json conversion, and search entries
+
+**These agents help with:**
+- Setting up `deploy/frontend.yaml` with proper schema validation
+- Configuring `feoConfigEnabled: true` and related FEO features
+- Converting fed-modules.json references to module configuration
+- Migrating navigation from chrome-service-backend to bundle segments
+- Converting service dropdown tiles to FEO service tiles format
+- Setting up explicit search entries for global search
+- Ensuring proper dependency upgrades (`@redhat-cloud-services/frontend-components-config@^6.6.9`)
+
+**Related Documentation:**
+- [FEO Migration Guide](https://github.com/RedHatInsights/chrome-service-backend/blob/main/docs/feo-migration-guide.md)
+- [Frontend Operator Docs](https://github.com/RedHatInsights/frontend-starter-app/blob/master/docs/frontend-operator/index.md)
+- [Frontend CRD Schema](https://raw.githubusercontent.com/RedHatInsights/frontend-components/refs/heads/master/packages/config-utils/src/feo/spec/frontend-crd.schema.json)
 
 ## Using the Toolkit
 
