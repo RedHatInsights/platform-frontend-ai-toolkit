@@ -27,13 +27,6 @@
           "coverage": true
         }
       }
-    },
-    "lint": {
-      "executor": "@nx/eslint:eslint",
-      "outputs": ["{options.outputFile}"],
-      "options": {
-        "lintFilePatterns": ["{projectRoot}/src/**/*.{ts,tsx,js,jsx}"]
-      }
     }
   }
 }
