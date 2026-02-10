@@ -287,9 +287,11 @@ Claude Code will:
 ## Available MCP Servers
 
 - **hcc-patternfly-data-view** - Model Context Protocol server for all PatternFly packages, providing comprehensive component documentation, source code access, module discovery, and CSS utility integration
+- **hcc-feo-mcp** - Frontend Operator (FEO) MCP server providing schema management, template generation, validation, and best practices for frontend.yaml configuration
 
 📋 **For detailed MCP server documentation and standalone usage**, see:
 - PatternFly MCP: [packages/hcc-pf-mcp/README.md](packages/hcc-pf-mcp/README.md)
+- FEO MCP: [packages/hcc-feo-mcp/README.md](packages/hcc-feo-mcp/README.md)
 
 ### MCP Server Tools
 
@@ -298,6 +300,18 @@ When the plugin is installed, these MCP tools become available:
 #### Data View Documentation and Examples
 - **getPatternFlyDataViewDescription** - Get comprehensive documentation about @patternfly/react-data-view package capabilities
 - **getPatternFlyDataViewExample** - Get implementation examples for various data table scenarios (basic usage, sorting, filtering, pagination, selection, etc.)
+
+#### Frontend Operator (FEO) Configuration Tools
+- **getFEOSchema** - Get latest FEO schema for validation and reference
+- **getFEOMigrationTemplate** - Generate customized migration templates for existing apps
+- **getFEOYamlSetupTemplate** - Generate complete frontend.yaml templates for new applications
+- **getFEOExamples** - Get specific FEO configuration examples and patterns
+- **validateFEOConfig** - Validate frontend.yaml against FEO schema
+- **getFEOBestPractices** - Access current FEO best practices and patterns
+- **getFEONavigationPositioning** - Get navigation positioning guidance
+- **getFEOServiceTilesSections** - Get available service tiles sections and groups
+
+**Note**: The FEO agents (`hcc-frontend-yaml-setup-specialist` and `hcc-frontend-feo-migration-specialist`) automatically use these MCP tools to provide up-to-date templates, validation, and guidance, significantly reducing token usage while maintaining comprehensive functionality.
 
 #### PatternFly Module Discovery and Source Code
 - **getAvailableModules** - Discover available PatternFly components in your local environment across react-core, react-icons, react-table, react-data-view, and react-component-groups packages
