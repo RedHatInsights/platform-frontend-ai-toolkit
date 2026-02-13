@@ -1,3 +1,4 @@
+import { z } from 'zod';
 import { CallToolResult, ErrorCode, McpError } from '@modelcontextprotocol/sdk/types.js';
 import { McpTool } from '../types.js';
 import { ensureSchemaLoaded } from '../utils/schemaCache.js';
@@ -96,38 +97,13 @@ ${template}
     {
       description: 'Generate complete frontend.yaml template for new applications',
       inputSchema: {
-        type: 'object',
-        properties: {
-          appName: {
-            type: 'string',
-            description: 'Application name in kebab-case (e.g., "my-new-app")',
-          },
-          displayTitle: {
-            type: 'string',
-            description: 'Human-readable application title',
-          },
-          bundle: {
-            type: 'string',
-            description: 'Target bundle (insights, openshift, ansible, settings, etc.)',
-          },
-          description: {
-            type: 'string',
-            description: 'Brief description of what the application does',
-          },
-          includeNavigation: {
-            type: 'boolean',
-            description: 'Include navigation bundle segment (default: true)',
-          },
-          includeServiceTiles: {
-            type: 'boolean',
-            description: 'Include service tiles configuration (default: true)',
-          },
-          includeSearch: {
-            type: 'boolean',
-            description: 'Include search entries (default: true)',
-          },
-        },
-        required: ['appName', 'displayTitle', 'bundle'],
+        appName: z.string().describe('Application name in kebab-case (e.g., "my-new-app")'),
+        displayTitle: z.string().describe('Human-readable application title'),
+        bundle: z.string().describe('Target bundle (insights, openshift, ansible, settings, etc.)'),
+        description: z.string().optional().describe('Brief description of what the application does'),
+        includeNavigation: z.boolean().optional().describe('Include navigation bundle segment (default: true)'),
+        includeServiceTiles: z.boolean().optional().describe('Include service tiles configuration (default: true)'),
+        includeSearch: z.boolean().optional().describe('Include search entries (default: true)'),
       },
     },
     tool

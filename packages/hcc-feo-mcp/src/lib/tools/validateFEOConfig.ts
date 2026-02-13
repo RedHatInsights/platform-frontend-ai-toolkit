@@ -1,5 +1,6 @@
 import yaml from 'yaml';
 import Ajv from 'ajv';
+import { z } from 'zod';
 import { CallToolResult, ErrorCode, McpError } from '@modelcontextprotocol/sdk/types.js';
 import { McpTool } from '../types.js';
 import { ensureSchemaLoaded, cachedSchema } from '../utils/schemaCache.js';
@@ -98,18 +99,8 @@ ${additionalChecks.map(check => `- ${check}`).join('\n')}
     {
       description: 'Validate frontend.yaml configuration against FEO schema',
       inputSchema: {
-        type: 'object',
-        properties: {
-          yamlContent: {
-            type: 'string',
-            description: 'YAML content to validate',
-          },
-          skipSchemaFetch: {
-            type: 'boolean',
-            description: 'Skip fetching latest schema and use cached version (default: false)',
-          },
-        },
-        required: ['yamlContent'],
+        yamlContent: z.string().describe('YAML content to validate'),
+        skipSchemaFetch: z.boolean().optional().describe('Skip fetching latest schema and use cached version (default: false)'),
       },
     },
     tool

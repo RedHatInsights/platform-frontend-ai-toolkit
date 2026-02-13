@@ -1,3 +1,4 @@
+import { z } from 'zod';
 import { CallToolResult, ErrorCode, McpError } from '@modelcontextprotocol/sdk/types.js';
 import { McpTool } from '../types.js';
 import { getNavigationPositioningGuidance } from '../utils/contentProviders.js';
@@ -31,14 +32,7 @@ ${guidance}`,
     {
       description: 'Get guidance on navigation positioning and bundle segment organization',
       inputSchema: {
-        type: 'object',
-        properties: {
-          bundle: {
-            type: 'string',
-            description: 'Bundle to get positioning guidance for (optional)',
-          },
-        },
-        additionalProperties: false,
+        bundle: z.string().optional().describe('Bundle to get positioning guidance for (optional)'),
       },
     },
     tool

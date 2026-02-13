@@ -1,3 +1,4 @@
+import { z } from 'zod';
 import { CallToolResult, ErrorCode, McpError } from '@modelcontextprotocol/sdk/types.js';
 import { McpTool } from '../types.js';
 import { ensureSchemaLoaded } from '../utils/schemaCache.js';
@@ -122,27 +123,10 @@ After applying this configuration:
     {
       description: 'Generate customized migration template for converting existing app to FEO',
       inputSchema: {
-        type: 'object',
-        properties: {
-          appName: {
-            type: 'string',
-            description: 'Application name in kebab-case (e.g., "learning-resources")',
-          },
-          bundle: {
-            type: 'string',
-            description: 'Target bundle (insights, openshift, ansible, settings, etc.)',
-          },
-          migrationType: {
-            type: 'string',
-            enum: ['navigation', 'service-tiles', 'search', 'module', 'full'],
-            description: 'Type of migration to generate template for',
-          },
-          displayTitle: {
-            type: 'string',
-            description: 'Human-readable application title (optional)',
-          },
-        },
-        required: ['appName', 'bundle', 'migrationType'],
+        appName: z.string().describe('Application name in kebab-case (e.g., "learning-resources")'),
+        bundle: z.string().describe('Target bundle (insights, openshift, ansible, settings, etc.)'),
+        migrationType: z.enum(['navigation', 'service-tiles', 'search', 'module', 'full']).describe('Type of migration to generate template for'),
+        displayTitle: z.string().optional().describe('Human-readable application title (optional)'),
       },
     },
     tool

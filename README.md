@@ -329,6 +329,136 @@ When the plugin is installed, these MCP tools become available:
 #### PatternFly CSS Utilities
 - **getReactUtilityClasses** - Access PatternFly CSS utility classes for styling (spacing, display, flex, colors, typography, etc.)
 
+## Developing MCP Servers
+
+### Required Dependencies
+
+**CRITICAL**: All MCP servers in this repository **MUST** include `zod` as a dependency. The MCP SDK (v1.22+) requires Zod for tool schema validation.
+
+Add to your MCP server's `package.json`:
+```json
+{
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.22.0",
+    "zod": "^3.25.76"
+  }
+}
+```
+
+### Tool Schema Definition
+
+Tool schemas **MUST** be defined using **Zod schemas**, not plain JSON Schema objects. The MCP SDK will call Zod validation methods like `safeParseAsync()` on your schemas.
+
+#### ✅ Correct - Using Zod Schemas
+
+```typescript
+import { z } from 'zod';
+
+export function myTool(): McpTool {
+  async function tool(args: any): Promise<CallToolResult> {
+    const { param1, param2 } = args;
+    // Tool implementation
+  }
+
+  return [
+    'myTool',
+    {
+      description: 'Tool description',
+      inputSchema: {
+        // Use Zod schema constructors
+        param1: z.string().describe('Required string parameter'),
+        param2: z.number().optional().describe('Optional number parameter'),
+        param3: z.enum(['option1', 'option2', 'option3']).describe('Enum parameter'),
+        param4: z.boolean().optional().default(true).describe('Boolean with default'),
+      },
+    },
+    tool
+  ];
+}
+
+// For tools with no parameters
+return [
+  'noParamTool',
+  {
+    description: 'Tool with no parameters',
+    inputSchema: {},  // Empty object, not JSON Schema
+  },
+  tool
+];
+```
+
+#### ❌ Incorrect - Using JSON Schema (Will Fail)
+
+```typescript
+// DON'T DO THIS - Will cause "v3Schema.safeParseAsync is not a function" error
+return [
+  'myTool',
+  {
+    description: 'Tool description',
+    inputSchema: {
+      type: 'object',           // ❌ JSON Schema syntax
+      properties: {
+        param1: {
+          type: 'string',         // ❌ Will fail
+          description: 'Parameter'
+        }
+      },
+      required: ['param1']       // ❌ Use z.string() instead
+    },
+  },
+  tool
+];
+```
+
+### Common Zod Schema Patterns
+
+```typescript
+// Required string
+z.string().describe('Description')
+
+// Optional string
+z.string().optional().describe('Description')
+
+// String with default
+z.string().default('default-value').describe('Description')
+
+// Enum/Union type
+z.enum(['value1', 'value2', 'value3']).describe('Description')
+
+// Boolean
+z.boolean().describe('Description')
+
+// Number
+z.number().describe('Description')
+
+// Optional boolean with default
+z.boolean().optional().default(true).describe('Description')
+```
+
+### Best Practices
+
+1. **Always use `describe()`** to add descriptions to your parameters - these become the tool's documentation
+2. **Use `optional()`** for non-required parameters instead of JSON Schema's `required` array
+3. **Use `default()`** to specify default values inline with the schema
+4. **Import Zod** at the top of every tool file: `import { z } from 'zod';`
+5. **Test your tools** with the MCP Inspector before deploying
+
+### Testing MCP Tools
+
+```bash
+# Build your MCP server
+npm run build
+
+# Test with MCP Inspector
+npx @modelcontextprotocol/inspector node dist/index.js
+```
+
+### Reference Documentation
+
+- [MCP SDK Documentation](https://github.com/modelcontextprotocol/sdk)
+- [Zod Documentation](https://zod.dev)
+- [Example MCP Servers](packages/hcc-feo-mcp/src/lib/tools/) - Reference implementations in this repo
+
 ## Outstanding Work & Future Roadmap
 
 📋 **See our roadmap and planned integrations**: [OUTSTANDING_WORK.md](OUTSTANDING_WORK.md)

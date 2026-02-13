@@ -1,3 +1,4 @@
+import { z } from 'zod';
 import { CallToolResult, ErrorCode, McpError } from '@modelcontextprotocol/sdk/types.js';
 import { McpTool } from '../types.js';
 import { getExamplesByType } from '../utils/contentProviders.js';
@@ -42,19 +43,8 @@ ${examples}`,
     {
       description: 'Get specific FEO configuration examples and patterns',
       inputSchema: {
-        type: 'object',
-        properties: {
-          type: {
-            type: 'string',
-            enum: ['navigation', 'service-tiles', 'search', 'module-config', 'multi-bundle', 'nested-navigation'],
-            description: 'Type of example to retrieve',
-          },
-          bundle: {
-            type: 'string',
-            description: 'Specific bundle for examples (optional)',
-          },
-        },
-        required: ['type'],
+        type: z.enum(['navigation', 'service-tiles', 'search', 'module-config', 'multi-bundle', 'nested-navigation']).describe('Type of example to retrieve'),
+        bundle: z.string().optional().describe('Specific bundle for examples (optional)'),
       },
     },
     tool

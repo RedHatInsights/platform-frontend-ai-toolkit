@@ -1,3 +1,4 @@
+import { z } from 'zod';
 import yaml from 'yaml';
 import { CallToolResult, ErrorCode, McpError } from '@modelcontextprotocol/sdk/types.js';
 import { McpTool } from '../types.js';
@@ -78,19 +79,8 @@ export function getFEOFieldRecommendationsTool(): McpTool {
     {
       description: 'Get schema-based field recommendations for specific FEO configuration paths',
       inputSchema: {
-        type: 'object',
-        properties: {
-          fieldPath: {
-            type: 'string',
-            description: 'Dot-notation path to field (e.g., "module", "bundleSegments", "serviceTiles")',
-          },
-          bundle: {
-            type: 'string',
-            description: 'Bundle context for bundle-specific recommendations (optional)',
-          },
-        },
-        required: ['fieldPath'],
-        additionalProperties: false,
+        fieldPath: z.string().describe('Dot-notation path to field (e.g., "module", "bundleSegments", "serviceTiles")'),
+        bundle: z.string().optional().describe('Bundle context for bundle-specific recommendations (optional)'),
       },
     },
     tool

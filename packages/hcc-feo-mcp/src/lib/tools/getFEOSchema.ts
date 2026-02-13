@@ -47,11 +47,7 @@ ${JSON.stringify(schema, null, 2)}
     'getFEOSchema',
     {
       description: 'Get the latest Frontend Operator CRD schema for validation and reference',
-      inputSchema: {
-        type: 'object',
-        properties: {},
-        additionalProperties: false,
-      },
+      inputSchema: {},
     },
     tool
   ];

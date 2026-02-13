@@ -1,3 +1,4 @@
+import { z } from 'zod';
 import { CallToolResult, ErrorCode, McpError } from '@modelcontextprotocol/sdk/types.js';
 import { McpTool } from '../types.js';
 import { getBestPracticesByCategory } from '../utils/contentProviders.js';
@@ -31,15 +32,7 @@ ${practices}`,
     {
       description: 'Get current FEO best practices and common patterns',
       inputSchema: {
-        type: 'object',
-        properties: {
-          category: {
-            type: 'string',
-            enum: ['positioning', 'naming', 'validation', 'migration', 'troubleshooting', 'all'],
-            description: 'Specific category of best practices (default: all)',
-          },
-        },
-        additionalProperties: false,
+        category: z.enum(['positioning', 'naming', 'validation', 'migration', 'troubleshooting', 'all']).optional().describe('Specific category of best practices (default: all)'),
       },
     },
     tool

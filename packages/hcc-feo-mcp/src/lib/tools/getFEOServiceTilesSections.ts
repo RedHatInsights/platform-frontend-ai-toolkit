@@ -29,11 +29,7 @@ ${sections}`,
     'getFEOServiceTilesSections',
     {
       description: 'Get available service tiles sections and groups',
-      inputSchema: {
-        type: 'object',
-        properties: {},
-        additionalProperties: false,
-      },
+      inputSchema: {},
     },
     tool
   ];
