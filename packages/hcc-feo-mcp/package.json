@@ -1,6 +1,6 @@
 {
   "name": "@redhat-cloud-services/hcc-feo-mcp",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "description": "HCC Frontend Operator MCP package for dynamic schema-driven FEO configuration management",
   "main": "./dist/index.js",
   "module": "./dist/index.js",

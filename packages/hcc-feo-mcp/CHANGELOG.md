@@ -1,3 +1,13 @@
+## 0.0.3 (2026-02-13)
+
+### 🩹 Fixes
+
+- **feo-release:** fix feo release by making it access public ([#22](https://github.com/RedHatInsights/platform-frontend-ai-toolkit/pull/22))
+
+### ❤️ Thank You
+
+- Karel Hala
+
 ## 0.0.2 (2026-02-13)
 
 ### 🩹 Fixes
