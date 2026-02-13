@@ -1,6 +1,6 @@
 {
   "name": "hcc-frontend-ai-toolkit",
-  "version": "1.4.2",
+  "version": "1.4.3",
   "description": "A collection of custom Claude Code agents for frontend development and infrastructure teams",
   "author": {
     "name": "Martin Marosi",
@@ -15,6 +15,10 @@
     "hcc-patternfly-data-view": {
       "command": "npx",
       "args": ["@redhat-cloud-services/hcc-pf-mcp"]
+    },
+    "hcc-feo-mcp": {
+      "command": "npx",
+      "args": ["@redhat-cloud-services/hcc-feo-mcp"]
     }
   }
 }
