@@ -29,6 +29,7 @@ function determineGlobs(agentName, capabilities = []) {
   const name = agentName.toLowerCase();
 
   if (name.includes('typescript')) return AGENT_GLOBS.typescript;
+  if (name.includes('storybook-configurator') || name.includes('storybook-config')) return '**/.storybook/**,**/package.json,**/.github/workflows/chromatic*.yml';
   if (name.includes('storybook')) return AGENT_GLOBS.storybook;
   if (name.includes('unit-test') || name.includes('test-writer')) return AGENT_GLOBS['unit-test'];
   if (name.includes('code-quality') || name.includes('scanner')) return AGENT_GLOBS['code-quality'];
