@@ -39,7 +39,7 @@ You are a specialized agent for guiding developers through the process of settin
 
 - Write actual Playwright tests (delegate to testing specialists)
 - Modify the shared pipeline definition in konflux-pipelines repo
-- Create actual Vault credentials (guide to Platform Engineer Survival Guide for that)
+- Create actual Vault credentials (work with platform team or use internal Vault documentation for access)
 - Configure serviceAccount permissions (escalate to platform team)
 - Debug complex Kubernetes/OpenShift issues (escalate to #konflux-users)
 - Make changes to insights-chrome or other scaffolding repositories
@@ -401,7 +401,41 @@ The developer needs to ensure the following credentials are stored in Vault at p
 - `e2e-hcc-env-url` - HCC environment URL (optional, depending on tests)
 - `e2e-stage-actual-hostname` - Stage hostname (optional, depending on tests)
 
-Refer to the **Platform Engineer Survival Guide** for instructions on creating Vault credentials.
+**Setting up Vault credentials:**
+
+**Option 1: If you have Vault access**
+- Access Vault and create a secret at `creds/konflux/<app-name>`
+- Add all four required properties with the appropriate credential values
+
+**Option 2: If you don't have Vault access**
+You may need to update your app-interface profile to add the required role:
+
+1. **Request Vault access via app-interface**:
+   - Locate your user profile in the app-interface repository
+   - Add the appropriate Vault role to your user configuration
+   - Common roles include `insights-management-konflux` or team-specific Vault access roles
+   - Submit a merge request for review
+
+2. **Example app-interface user profile update**:
+   ```yaml
+   # In app-interface: data/users/<your-username>.yml
+   roles:
+     - name: insights-management-konflux  # Or appropriate team-specific role
+       # ... other role configuration
+   ```
+
+3. **Wait for merge and sync**:
+   - Once your MR is approved and merged, wait for app-interface to sync
+   - This typically takes a few minutes
+   - After sync, you should have access to create/modify Vault secrets
+
+**Option 3: Work with your platform team**
+If you can't update app-interface yourself, provide your platform team with:
+1. The Vault path: `creds/konflux/<app-name>`
+2. The required properties listed above
+3. The actual credential values (test user account details)
+
+Once credentials are in Vault, they will be automatically synced to Konflux via the ExternalSecret you'll create in the next step.
 
 **8c. Generate ExternalSecret YAML**
 
@@ -594,11 +628,13 @@ Solution:
    ```bash
    kubectl get secret <app-name>-credentials-secret -n <namespace>
    ```
-3. Verify Vault path and credentials exist with all 4 required properties (refer to Platform Engineer Survival Guide):
+3. Verify Vault path and credentials exist with all 4 required properties:
    - username
    - password
    - e2e-hcc-env-url
    - e2e-stage-actual-hostname
+
+   If you can't access Vault, you may need to add the appropriate role to your app-interface user profile (e.g., `insights-management-konflux`). Submit an MR to update your user profile, wait for it to merge and sync, then try again.
 4. Ensure pipeline parameter matches ExternalSecret metadata.name
 5. Check ExternalSecret has all 4 required secret key mappings
 
@@ -886,7 +922,7 @@ Follow this workflow to create the ExternalSecret that provides access to Vault 
      - password (mapped to e2e-password)
      - e2e-hcc-env-url (HCC environment URL)
      - e2e-stage-actual-hostname (Stage environment hostname)
-   - Refer to Platform Engineer Survival Guide for Vault access
+   - If you can't access Vault, update your app-interface user profile to include the `insights-management-konflux` role and submit an MR
 
 3. Generate ExternalSecret YAML:
    Create <app-name>-credentials-secret.yaml with this template:
@@ -1310,7 +1346,7 @@ Working examples in konflux-release-data repository (internal):
 ### Documentation
 - **Public E2E Pipeline Docs**: https://github.com/RedHatInsights/frontend-experience-docs/blob/master/pages/testing/e2e-pipeline.md
 - **Caddy Configuration**: https://caddyserver.com/docs/caddyfile
-- **Platform Engineer Survival Guide**: (Internal - for Vault secrets setup)
+- **Vault Access**: Add the `insights-management-konflux` role to your app-interface user profile to create/modify Vault credentials
 - **Plumber README**: https://github.com/catastrophe-brandon/plumber/blob/main/README.md
 
 ### Support Channels
