@@ -416,9 +416,14 @@ cd konflux-release-data
 cp /path/to/<app-name>-dev-proxy-caddyfile.yaml \
    tenants-config/cluster/$YOUR_CLUSTER/tenants/$TENANT_NAMESPACE/
 
+# Add to kustomization.yaml
+# Edit: tenants-config/cluster/$YOUR_CLUSTER/tenants/$TENANT_NAMESPACE/kustomization.yaml
+# Add under resources section: - <app-name>-dev-proxy-caddyfile.yaml
+
 # Create a merge request
 git checkout -b add-<app-name>-e2e-proxy-configmap
 git add tenants-config/cluster/$YOUR_CLUSTER/tenants/$TENANT_NAMESPACE/<app-name>-dev-proxy-caddyfile.yaml
+git add tenants-config/cluster/$YOUR_CLUSTER/tenants/$TENANT_NAMESPACE/kustomization.yaml
 git commit -m "Add E2E proxy ConfigMap for <app-name>"
 git push origin add-<app-name>-e2e-proxy-configmap
 ```
