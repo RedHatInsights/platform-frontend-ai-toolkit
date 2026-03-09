@@ -318,7 +318,7 @@ If the user doesn't have the repository cloned locally, this agent can fetch the
 
 1. Ask the user for the repository URL and branch (default: main/master)
 2. Fetch the necessary files from GitHub:
-   - `deploy/frontend.yaml` or custom path
+   - `deploy/frontend.yaml` (or `frontend.yml`) or custom path
    - `fec.config.js` or custom path
 3. Write the files to a temporary directory
 4. Run Plumber with custom file paths:
@@ -328,6 +328,8 @@ If the user doesn't have the repository cloned locally, this agent can fetch the
      --namespace <namespace> \
      --frontend-yaml /path/to/downloaded/frontend.yaml
    ```
+
+**Note:** Plumber accepts YAML files with either `.yaml` or `.yml` extensions. When fetching files from repositories, check for both extensions if the default path is not found.
 
 This allows users to generate ConfigMaps without cloning the entire repository.
 
@@ -357,7 +359,7 @@ uv run plumber insights-rbac-ui \
 - This simplification reflects updates to the shared pipeline
 
 **Optional Flags:**
-- `--frontend-yaml <path>` - Custom path to frontend.yaml (default: deploy/frontend.yaml)
+- `--frontend-yaml <path>` - Custom path to frontend YAML file (accepts both `.yaml` and `.yml` extensions; default: deploy/frontend.yaml)
 - `--fec-config <path>` - Custom path to fec.config.js (default: fec.config.js)
 
 **Note:** The `--app-configmap-name` flag is no longer commonly used, as the shared pipeline has been updated to handle serving app assets directly.

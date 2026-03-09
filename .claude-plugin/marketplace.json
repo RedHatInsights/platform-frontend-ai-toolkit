@@ -9,7 +9,7 @@
       "name": "hcc-frontend-ai-toolkit",
       "source": "./claude",
       "description": "A collection of custom Claude Code agents for frontend development teams",
-      "version": "1.5.2",
+      "version": "1.5.3",
       "author": {
         "name": "HCC Frontend Team",
         "email": "frontend-team@hcc.com"
