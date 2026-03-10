@@ -189,9 +189,13 @@ curl -s https://raw.githubusercontent.com/RedHatInsights/konflux-pipelines/main/
 - `unit-tests-script` - Script to run unit tests
 - `e2e-tests-script` - Script to run E2E tests
 - `run-app-script` - Script to start the application
-- `playwright-image` - Playwright Docker image (must match package.json version)
+- `e2e-playwright-image` - Playwright Docker image (must match package.json version)
 - `frontend-proxy-routes-configmap` - ConfigMap name for proxy routes
 - `e2e-credentials-secret` - Secret name for credentials
+
+**OPTIONAL PARAMETERS** (have defaults):
+- `e2e-app-port` - Application port (default: "8000")
+- `workspace-setup-script` - Setup script before tests (default: "")
 
 **Note:** Parameter requirements may change. Always verify against the latest shared pipeline definition.
 
@@ -223,9 +227,13 @@ https://github.com/RedHatInsights/konflux-pipelines/blob/main/pipelines/platform
 - `unit-tests-script` - Script to run unit tests (REQUIRED)
 - `e2e-tests-script` - Script to run E2E tests (REQUIRED)
 - `run-app-script` - Script to start the application (REQUIRED)
-- `playwright-image` - Playwright Docker image matching package.json version (REQUIRED)
-- `frontend-proxy-routes-configmap` - ConfigMap name for proxy routes (REQUIRED)
-- `e2e-credentials-secret` - Secret name for credentials (REQUIRED)
+- `e2e-playwright-image` - Playwright Docker image matching package.json version (REQUIRED - has default but should be overridden to match package.json)
+- `frontend-proxy-routes-configmap` - ConfigMap name for proxy routes (REQUIRED - has empty default, must be set)
+- `e2e-credentials-secret` - Secret name for credentials (REQUIRED - has empty default, must be set)
+
+**Optional parameters:**
+- `e2e-app-port` - Application port (default: "8000")
+- `workspace-setup-script` - Setup script before tests (default: "")
 
 **Example modification:**
 ```yaml
@@ -238,34 +246,42 @@ pipelinesascode.tekton.dev/pipeline: https://github.com/RedHatInsights/konflux-p
 # Add new E2E parameters to spec.params:
 params:
   # ... existing params ...
-  - name: test-app-name
-    value: "your-app-name"
-  - name: test-app-port
-    value: "8000"
+
   # NOTE: chrome-port has been removed - chrome sidecar is no longer used
-  - name: playwright-image
-    value: "mcr.microsoft.com/playwright:v1.40.0-jammy"  # CRITICAL: Must match @playwright/test version in package.json
+
+  # REQUIRED: Scripts for testing
+  - name: unit-tests-script
+    value: |
+      #!/bin/bash
+      set -ex
+      npm run test
+
+  - name: e2e-tests-script
+    value: |
+      #!/bin/bash
+      set -ex
+      npx playwright test
+
   - name: run-app-script
     value: |
       #!/bin/bash
       set -ex
       # Start Caddy to serve app assets
       caddy run --config /etc/caddy/Caddyfile --adapter caddyfile
+
+  # REQUIRED: E2E configuration (technically have defaults but must be set correctly)
+  - name: e2e-playwright-image
+    value: "mcr.microsoft.com/playwright:v1.40.0-jammy"  # CRITICAL: Must match @playwright/test version in package.json
+
   - name: frontend-proxy-routes-configmap
     value: "your-app-name-dev-proxy-caddyfile"
-  - name: unit-tests-script
-    value: |
-      #!/bin/bash
-      set -ex
-      npm run test
-  - name: e2e-tests-script
-    value: |
-      #!/bin/bash
-      set -ex
-      npx playwright test
+
   - name: e2e-credentials-secret
     value: "your-app-name-credentials-secret"
-  # ... other E2E-specific params ...
+
+  # OPTIONAL: Override defaults if needed
+  - name: e2e-app-port
+    value: "8000"  # Default is already 8000, can omit if using default
 ```
 
 **Step 6d: Create New Pipeline (if none exists)**
@@ -299,18 +315,49 @@ spec:
         value: pipelines/platform-ui/docker-build-run-all-tests.yaml
 
   params:
-    - name: test-app-name
-      value: "[YOUR-APP-NAME]"  # CRITICAL: Update this!
+    # Build parameters
+    - name: git-url
+      value: "{{source_url}}"
+    - name: revision
+      value: "{{revision}}"
+    - name: output-image
+      value: "quay.io/..."  # CRITICAL: Update this!
 
-    - name: test-app-port
-      value: "8000"  # Port for app assets
+    # Required test scripts
+    - name: unit-tests-script
+      value: |
+        #!/bin/bash
+        set -ex
+        npm run test
 
-    # NOTE: chrome-port parameter has been removed
+    - name: e2e-tests-script
+      value: |
+        #!/bin/bash
+        set -ex
+        npx playwright test
 
-    - name: serviceAccountName
-      value: "[YOUR-SERVICE-ACCOUNT]"  # Update per app
+    - name: run-app-script
+      value: |
+        #!/bin/bash
+        set -ex
+        caddy run --config /etc/caddy/Caddyfile --adapter caddyfile
 
-  # Additional parameters as needed...
+    # E2E configuration
+    - name: e2e-playwright-image
+      value: "mcr.microsoft.com/playwright:v1.40.0-jammy"
+
+    - name: frontend-proxy-routes-configmap
+      value: "[YOUR-APP-NAME]-dev-proxy-caddyfile"
+
+    - name: e2e-credentials-secret
+      value: "[YOUR-APP-NAME]-credentials-secret"
+
+    # Optional (can omit to use defaults)
+    - name: e2e-app-port
+      value: "8000"
+
+  taskRunTemplate:
+    serviceAccountName: "[YOUR-SERVICE-ACCOUNT]"  # Update per app
 ```
 
 **Step 7: Generate Proxy ConfigMap Using Plumber**
@@ -692,7 +739,7 @@ tkn pipelinerun describe --filename .tekton/your-app-pull-request.yaml
 - [ ] Correct apiVersion: `tekton.dev/v1`
 - [ ] Correct kind: `PipelineRun`
 - [ ] Unique metadata.name (not duplicated in other .tekton/*.yaml files)
-- [ ] All REQUIRED parameters included (unit-tests-script, e2e-tests-script, run-app-script, playwright-image, frontend-proxy-routes-configmap, e2e-credentials-secret)
+- [ ] All REQUIRED parameters included (unit-tests-script, e2e-tests-script, run-app-script, e2e-playwright-image, frontend-proxy-routes-configmap, e2e-credentials-secret)
 - [ ] No placeholder values like `<app-name>` or `TODO`
 - [ ] serviceAccountName matches your application
 - [ ] ConfigMap names match what will be submitted to konflux-release-data
@@ -983,9 +1030,9 @@ Solution:
 
 **CRITICAL:** The E2E pipeline installs dependencies during the workspace setup phase. If @playwright/test is not listed in package.json dependencies or devDependencies, it won't be installed, and the pipeline will fail when trying to run the tests.
 
-**VERSION COMPATIBILITY:** The `playwright-image` parameter in your pipeline MUST match the version of `@playwright/test` in your package.json:
-- package.json has `"@playwright/test": "^1.40.0"` → use `playwright-image: "mcr.microsoft.com/playwright:v1.40.0-jammy"`
-- package.json has `"@playwright/test": "^1.45.0"` → use `playwright-image: "mcr.microsoft.com/playwright:v1.45.0-jammy"`
+**VERSION COMPATIBILITY:** The `e2e-playwright-image` parameter in your pipeline MUST match the version of `@playwright/test` in your package.json:
+- package.json has `"@playwright/test": "^1.40.0"` → use `e2e-playwright-image: "mcr.microsoft.com/playwright:v1.40.0-jammy"`
+- package.json has `"@playwright/test": "^1.45.0"` → use `e2e-playwright-image: "mcr.microsoft.com/playwright:v1.45.0-jammy"`
 - The version numbers must align to ensure browser binaries match the Playwright API version
 - Mismatched versions can cause cryptic errors about missing browsers or incompatible APIs
 
@@ -1005,7 +1052,7 @@ Error: Your version of Playwright does not match the version of installed browse
 ```
 
 Causes:
-- The `playwright-image` parameter in the pipeline uses a different version than `@playwright/test` in package.json
+- The `e2e-playwright-image` parameter in the pipeline uses a different version than `@playwright/test` in package.json
 - Pipeline uses Playwright v1.40.0 but package.json has v1.45.0 (or vice versa)
 - Browser binaries don't match the Playwright API version
 
@@ -1019,9 +1066,9 @@ Solution:
    }
    ```
 
-2. Update the `playwright-image` parameter in your pipeline to match:
+2. Update the `e2e-playwright-image` parameter in your pipeline to match:
    ```yaml
-   - name: playwright-image
+   - name: e2e-playwright-image
      value: "mcr.microsoft.com/playwright:v1.40.0-jammy"  # Version must match package.json
    ```
 
@@ -1032,7 +1079,7 @@ Solution:
 
 4. Commit the pipeline change and re-run tests
 
-**CRITICAL:** Always keep these versions synchronized. When you upgrade Playwright in package.json, also update the pipeline's playwright-image parameter.
+**CRITICAL:** Always keep these versions synchronized. When you upgrade Playwright in package.json, also update the pipeline's e2e-playwright-image parameter.
 
 **Common Issue 9: Chrome Sidecar Removal Migration**
 
@@ -1297,28 +1344,41 @@ than creating a duplicate file with a different name.
          value: quay.io/...
 
        # New E2E params - add these
-       - name: test-app-name
-         value: "your-app-name"
-       - name: test-app-port
-         value: "8000"
        # NOTE: chrome-port has been removed - chrome sidecar no longer used
-       - name: playwright-image
-         value: "mcr.microsoft.com/playwright:v1.40.0-jammy"  # CRITICAL: Must match @playwright/test version in package.json
-       - name: run-app-script
+
+       # Required test scripts
+       - name: unit-tests-script
          value: |
            #!/bin/bash
            set -ex
-           # Start Caddy to serve app assets on port 8000
-           caddy run --config /etc/caddy/Caddyfile --adapter caddyfile
-       - name: frontend-proxy-routes-configmap
-         value: "your-app-name-dev-proxy-caddyfile"
+           npm run test
+
        - name: e2e-tests-script
          value: |
            #!/bin/bash
            set -ex
            npx playwright test
+
+       - name: run-app-script
+         value: |
+           #!/bin/bash
+           set -ex
+           # Start Caddy to serve app assets
+           caddy run --config /etc/caddy/Caddyfile --adapter caddyfile
+
+       # E2E configuration (technically have defaults but must be set correctly)
+       - name: e2e-playwright-image
+         value: "mcr.microsoft.com/playwright:v1.40.0-jammy"  # CRITICAL: Must match @playwright/test version in package.json
+
+       - name: frontend-proxy-routes-configmap
+         value: "your-app-name-dev-proxy-caddyfile"
+
        - name: e2e-credentials-secret
          value: "your-app-credentials-secret"
+
+       # Optional (can omit to use defaults)
+       - name: e2e-app-port
+         value: "8000"
 
 5. Preserve Critical Metadata:
    - Keep the same PipelineRun metadata.name (don't rename it)
@@ -1592,11 +1652,11 @@ Before considering setup complete, verify:
   - [ ] `unit-tests-script` - Script to run unit tests (REQUIRED)
   - [ ] `e2e-tests-script` - Script to run Playwright tests (REQUIRED)
   - [ ] `run-app-script` - Script to start Caddy server serving app assets (REQUIRED)
-  - [ ] `playwright-image` - Playwright Docker image matching package.json version (REQUIRED, e.g., `mcr.microsoft.com/playwright:v1.40.0-jammy`)
-  - [ ] `frontend-proxy-routes-configmap` - ConfigMap name for proxy routes (REQUIRED, simplified routing to app port, all else proxies to stage)
-  - [ ] `e2e-credentials-secret` - Secret name for test credentials (REQUIRED)
-  - [ ] `test-app-name` - Application name for routing (optional)
-  - [ ] `test-app-port` - Port for app assets (optional, default: 8000)
+  - [ ] `e2e-playwright-image` - Playwright Docker image matching package.json version (REQUIRED - has default but must override, e.g., `mcr.microsoft.com/playwright:v1.40.0-jammy`)
+  - [ ] `frontend-proxy-routes-configmap` - ConfigMap name for proxy routes (REQUIRED - has empty default, must be set, simplified routing to app port, all else proxies to stage)
+  - [ ] `e2e-credentials-secret` - Secret name for test credentials (REQUIRED - has empty default, must be set)
+  - [ ] `e2e-app-port` - Port for app assets (optional, default: "8000")
+  - [ ] `workspace-setup-script` - Setup script before tests (optional, default: "")
   - [ ] NOTE: `chrome-port` parameter has been REMOVED (chrome sidecar no longer used)
 - [ ] `serviceAccountName` matches the application
 - [ ] Plumber installed and run successfully
