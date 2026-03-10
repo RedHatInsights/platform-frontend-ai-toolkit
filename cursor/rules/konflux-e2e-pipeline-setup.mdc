@@ -85,6 +85,7 @@ You are a specialized agent for guiding developers through the process of settin
    - **CRITICAL:** Verify Playwright is installed in package.json:
      - Check `devDependencies` for `@playwright/test`
      - If missing, add it: `npm install -D @playwright/test`
+     - **Note the version number** (e.g., `"@playwright/test": "^1.40.0"`) - you'll need this for the pipeline configuration
      - Verify `playwright.config.ts` or `playwright.config.js` exists
    - Verify test script exists in package.json:
      - Should have a script like `"test:playwright": "playwright test"`
@@ -210,6 +211,8 @@ params:
   - name: test-app-port
     value: "8000"
   # NOTE: chrome-port has been removed - chrome sidecar is no longer used
+  - name: playwright-image
+    value: "mcr.microsoft.com/playwright:v1.40.0-jammy"  # CRITICAL: Must match @playwright/test version in package.json
   - name: run-app-script
     value: |
       #!/bin/bash
@@ -797,6 +800,7 @@ Causes:
 Solution:
 1. Review the complete list of required E2E parameters (based on current shared pipeline):
    - `test-app-name` - Application name
+   - `playwright-image` - Playwright Docker image (must match @playwright/test version in package.json)
    - `frontend-proxy-routes-configmap` - ConfigMap name for proxy routes (the dev-proxy Caddyfile)
    - `e2e-tests-script` - Script to run Playwright tests
    - `e2e-credentials-secret` - Secret name for credentials
@@ -887,9 +891,60 @@ Solution:
 
 6. Commit package.json and package-lock.json changes
 
-**CRITICAL:** The E2E pipeline installs dependencies during the workspace setup phase. If @playwright/test is not listed in package.json dependencies or devDependencies, it won't be installed, and the pipeline will fail when trying to run the tests. Ensure the Playwright image version matches your package.json version.
+**CRITICAL:** The E2E pipeline installs dependencies during the workspace setup phase. If @playwright/test is not listed in package.json dependencies or devDependencies, it won't be installed, and the pipeline will fail when trying to run the tests.
 
-**Common Issue 8: Chrome Sidecar Removal Migration**
+**VERSION COMPATIBILITY:** The `playwright-image` parameter in your pipeline MUST match the version of `@playwright/test` in your package.json:
+- package.json has `"@playwright/test": "^1.40.0"` → use `playwright-image: "mcr.microsoft.com/playwright:v1.40.0-jammy"`
+- package.json has `"@playwright/test": "^1.45.0"` → use `playwright-image: "mcr.microsoft.com/playwright:v1.45.0-jammy"`
+- The version numbers must align to ensure browser binaries match the Playwright API version
+- Mismatched versions can cause cryptic errors about missing browsers or incompatible APIs
+
+**Common Issue 8: Playwright Version Mismatch**
+
+Symptoms:
+```
+Error: Executable doesn't exist at /ms-playwright/chromium-<version>/chrome-linux/chrome
+```
+or
+```
+browserType.launch: Executable doesn't exist
+```
+or
+```
+Error: Your version of Playwright does not match the version of installed browsers
+```
+
+Causes:
+- The `playwright-image` parameter in the pipeline uses a different version than `@playwright/test` in package.json
+- Pipeline uses Playwright v1.40.0 but package.json has v1.45.0 (or vice versa)
+- Browser binaries don't match the Playwright API version
+
+Solution:
+1. Check the version of `@playwright/test` in your package.json:
+   ```json
+   {
+     "devDependencies": {
+       "@playwright/test": "^1.40.0"  // Note this version
+     }
+   }
+   ```
+
+2. Update the `playwright-image` parameter in your pipeline to match:
+   ```yaml
+   - name: playwright-image
+     value: "mcr.microsoft.com/playwright:v1.40.0-jammy"  # Version must match package.json
+   ```
+
+3. Version mapping examples:
+   - `@playwright/test: "^1.40.0"` → `mcr.microsoft.com/playwright:v1.40.0-jammy`
+   - `@playwright/test: "^1.45.0"` → `mcr.microsoft.com/playwright:v1.45.0-jammy`
+   - `@playwright/test: "^1.48.0"` → `mcr.microsoft.com/playwright:v1.48.0-jammy`
+
+4. Commit the pipeline change and re-run tests
+
+**CRITICAL:** Always keep these versions synchronized. When you upgrade Playwright in package.json, also update the pipeline's playwright-image parameter.
+
+**Common Issue 9: Chrome Sidecar Removal Migration**
 
 **IMPORTANT:** The insights-chrome-dev sidecar container has been removed from the E2E pipeline. If you're migrating from an older pipeline configuration, you need to update your setup.
 
@@ -1152,6 +1207,8 @@ than creating a duplicate file with a different name.
        - name: test-app-port
          value: "8000"
        # NOTE: chrome-port has been removed - chrome sidecar no longer used
+       - name: playwright-image
+         value: "mcr.microsoft.com/playwright:v1.40.0-jammy"  # CRITICAL: Must match @playwright/test version in package.json
        - name: run-app-script
          value: |
            #!/bin/bash
@@ -1427,11 +1484,13 @@ Before considering setup complete, verify:
   - [ ] `playwright.config.ts` or `playwright.config.js` exists
   - [ ] Test script in package.json (e.g., `"test:playwright": "playwright test"`)
   - [ ] Playwright tests exist in `playwright/` directory
+  - [ ] **CRITICAL**: `playwright-image` parameter version matches `@playwright/test` version in package.json
 - [ ] Pipeline definition exists in `.tekton` folder
 - [ ] Pipeline references correct shared pipeline in konflux-pipelines repo
 - [ ] Required E2E pipeline parameters are configured:
   - [ ] `test-app-name` - Application name for routing
   - [ ] `test-app-port` - Port for app assets (usually 8000)
+  - [ ] `playwright-image` - Playwright Docker image matching package.json version (e.g., `mcr.microsoft.com/playwright:v1.40.0-jammy`)
   - [ ] `run-app-script` - Script to start Caddy server serving app assets
   - [ ] `frontend-proxy-routes-configmap` - ConfigMap name for proxy routes (simplified routing to app port, all else proxies to stage)
   - [ ] `e2e-tests-script` - Script to run Playwright tests
