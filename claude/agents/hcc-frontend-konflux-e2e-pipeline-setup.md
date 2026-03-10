@@ -748,7 +748,7 @@ Create an ExternalSecret that allows Konflux to access the Vault credentials:
 
 ```yaml
 ---
-apiVersion: external-secrets.io/v1beta1
+apiVersion: external-secrets.io/v1
 kind: ExternalSecret
 metadata:
   name: <app-name>-credentials-secret
@@ -791,7 +791,7 @@ Provide the developer with a ready-to-use YAML file by substituting their values
 **Example for insights-rbac-ui:**
 ```yaml
 ---
-apiVersion: external-secrets.io/v1beta1
+apiVersion: external-secrets.io/v1
 kind: ExternalSecret
 metadata:
   name: insights-rbac-ui-credentials-secret
@@ -1567,7 +1567,7 @@ Follow this workflow to create the ExternalSecret that provides access to Vault 
    Create <app-name>-credentials-secret.yaml with this template:
 
    ---
-   apiVersion: external-secrets.io/v1beta1
+   apiVersion: external-secrets.io/v1
    kind: ExternalSecret
    metadata:
      name: <app-name>-credentials-secret
