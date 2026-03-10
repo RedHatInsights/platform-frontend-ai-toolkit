@@ -294,6 +294,11 @@ Path: .tekton/learning-resources-pull-request.yaml
 
 Create a new file in your repo's `.tekton` folder:
 
+**IMPORTANT: pipelineRef structure**
+- When using a `resolver` (like `git`), do NOT include the `name` field
+- The `name` field is only used when referencing a pipeline already in the cluster
+- Including both `name` and `resolver` will cause a validation error
+
 ```yaml
 apiVersion: tekton.dev/v1
 kind: PipelineRun
@@ -304,7 +309,6 @@ metadata:
     pipelinesascode.tekton.dev/on-target-branch: "[main,master]"
 spec:
   pipelineRef:
-    name: docker-build-run-all-tests
     resolver: git
     params:
       - name: url
@@ -752,6 +756,7 @@ tkn pipelinerun describe --filename .tekton/your-app-pull-request.yaml
 - Missing required parameters
 - Invalid parameter types (string vs array)
 - Incorrect resource references
+- **pipelineRef with both name and resolver** - When using `resolver: git`, do NOT include `name` field (causes "expected exactly one, got both" error)
 
 **Step 10: Submit Changes in Correct Order**
 
