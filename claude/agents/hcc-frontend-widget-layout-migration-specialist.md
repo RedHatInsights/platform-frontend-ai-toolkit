@@ -125,8 +125,13 @@ Both keys live under `objects[].spec` in the frontend.yml.
 
 1. Ask the user to provide their existing widget registry config in JSON or YAML format (this is the config they currently have in the chrome service).
 2. Once provided, translate it into the `frontend.yml` format under `objects[].spec.widgetRegistry`.
-3. Validate the result against the schema.
-4. When committing, include a copy of the original shared config provided by the user in the commit message body (unless the user asks otherwise).
+3. **Handle every key from the user's config — never silently drop any.** For each key in the source config:
+   a. Find the direct equivalent location in the CRD schema and map it there.
+   b. If a key does not fit in its exact source location (e.g., because the target schema object has `additionalProperties: false`), search the rest of the CRD schema for the closest valid location. For example, if `headerLink.featureFlag` is not allowed in `widgetHeaderLink` (which has `additionalProperties: false`), check whether `widgetConfig` (which has `additionalProperties: true`) can accept it as a custom property, or whether there is a matching field at the `widgetEntry` level.
+   c. If you relocate a key, tell the user where it was moved and why.
+   d. If no valid location can be found anywhere in the schema, explicitly tell the user which keys could not be mapped and why, and ask how they would like to handle them. Never silently omit user-provided configuration.
+4. Validate the result against the schema.
+5. When committing, include a copy of the original shared config provided by the user in the commit message body (unless the user asks otherwise).
 
 ### Task 3: Add a New Base Widget Layout
 
