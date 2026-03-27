@@ -52,10 +52,11 @@ Before starting any task, verify the following. Do not skip any step.
 - Check that the user's repo contains a `package.json` with React as a dependency.
 - If you are not currently inside React repo, ask the user to point you to their application's directory instead. You should be working inside the **tenant's** React application.
 
-### 2. Confirm `frontend.yml` exists
+### 2. Locate the Frontend CRD file
 
-- Look for a `frontend.yml` file in the root of the repo.
-- If it does not exist, inform the user that this file is required and stop.
+- Search the repo for the Frontend CRD file. It is commonly named `frontend.yml` and located at the root, but it may have a different name (e.g., `frontend.yaml`, `deploy/frontend.yml`) or live in a subdirectory.
+- Look for YAML files that contain the Frontend CRD structure (e.g., files with `objects[].spec` containing frontend configuration keys).
+- If you cannot find it anywhere, ask the user: *"I couldn't locate the Frontend CRD file in your repo. Could you point me to its path?"*
 
 ### 3. Verify `@redhat-cloud-services/frontend-components-config` version
 
