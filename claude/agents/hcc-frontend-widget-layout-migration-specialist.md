@@ -52,20 +52,26 @@ Before starting any task, verify the following. Do not skip any step.
 - Check that the user's repo contains a `package.json` with React as a dependency.
 - If you are not currently inside React repo, ask the user to point you to their application's directory instead. You should be working inside the **tenant's** React application.
 
-### 2. Locate the Frontend CRD file
+### 2. Ensure you are not on main/master
+
+- Check the current git branch. If you are on `main` or `master`, create a new branch before making any changes (e.g., `git checkout -b widget-layout-migration`).
+- Never commit directly to main/master.
+
+### 3. Locate the Frontend CRD file
 
 - Search the repo for the Frontend CRD file. It is commonly named `frontend.yml` and located at the root, but it may have a different name (e.g., `frontend.yaml`, `deploy/frontend.yml`) or live in a subdirectory.
 - Look for YAML files that contain the Frontend CRD structure (e.g., files with `objects[].spec` containing frontend configuration keys).
 - If you cannot find it anywhere, ask the user: *"I couldn't locate the Frontend CRD file in your repo. Could you point me to its path?"*
 
-### 3. Verify `@redhat-cloud-services/frontend-components-config` version
+### 4. Verify `@redhat-cloud-services/frontend-components-config` version
 
 - Read `package.json` and check the version of `@redhat-cloud-services/frontend-components-config` (usually in `devDependencies`).
 - The minimum required version is **6.8.3**.
+- Look up the latest available version of this package (e.g., via `npm view @redhat-cloud-services/frontend-components-config version`).
 - If the version is lower than 6.8.3 or the package is missing:
   1. **First**, verify the application runs successfully in its current state. Read the README for instructions on how to run the app, or ask the user if the README is unclear.
   2. Run the application to confirm it works before making changes.
-  3. Update the version in `package.json` to `^6.8.3` (or the latest if you can determine it).
+  3. Update the version in `package.json` to the latest available version. If upgrading to the latest causes issues, fall back to `^6.8.3`.
   4. Run the application again after the update to confirm nothing is broken.
   5. If the app fails after the update, troubleshoot and resolve the issue before proceeding.
 
@@ -120,6 +126,7 @@ Both keys live under `objects[].spec` in the frontend.yml.
 1. Ask the user to provide their existing widget registry config in JSON or YAML format (this is the config they currently have in the chrome service).
 2. Once provided, translate it into the `frontend.yml` format under `objects[].spec.widgetRegistry`.
 3. Validate the result against the schema.
+4. When committing, include a copy of the original shared config provided by the user in the commit message body (unless the user asks otherwise).
 
 ### Task 3: Add a New Base Widget Layout
 
@@ -156,6 +163,7 @@ Both keys live under `objects[].spec` in the frontend.yml.
 2. **Important**: If the provided config uses `x` and `y` keys, translate them to `cx` and `cy` respectively in the `frontend.yml` output.
 3. Structure the layout under `objects[].spec.baseWidgetLayouts` with breakpoints as needed.
 4. Validate the result against the schema.
+5. When committing, include a copy of the original shared config provided by the user in the commit message body (unless the user asks otherwise).
 
 ---
 
@@ -184,6 +192,5 @@ Once the `frontend.yml` is updated and the app runs successfully:
 ## Important Notes
 
 - Not all repos will have both `widgetRegistry` and `baseWidgetLayouts`. Some may have one or the other. This is normal.
-- Always fetch the latest schema before validating. Do not rely on cached or memorized schema content.
 - When in doubt about any configuration detail, ask the user rather than guessing.
 - Keep your communication clear, concise, and step-by-step so the user always knows what is happening.
