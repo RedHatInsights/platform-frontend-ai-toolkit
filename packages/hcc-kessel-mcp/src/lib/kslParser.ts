@@ -12,6 +12,9 @@ const CONTINGENT_RE =
 // Matches: @rbac.add_v1only_permission(perm:'x')
 const V1_ONLY_RE = /add_v1only_permission\(perm:'([^']+)'\)/g;
 
+// The relation that gates host-centric permissions — must be present alongside the _assigned variant
+const HOST_CENTRIC_RELATION = 'inventory_host_view';
+
 // Matches: @add_unified_permission(app:'x', resource:'y', verb:'z')
 // Used for RBAC's own permissions where v1 and v2 share the same name (colons → underscores)
 const UNIFIED_RE =
@@ -67,7 +70,7 @@ export function parseKsl(kslContent: string, service: string): ServicePermission
       return { v1Permission: v1, v2Relation: v2, hostCentric: false, unified: true };
     }
     const contingent = contingentMap.get(v2);
-    if (contingent && contingent.first === 'inventory_host_view') {
+    if (contingent && contingent.first === HOST_CENTRIC_RELATION) {
       return { v1Permission: v1, v2Relation: contingent.contingent, hostCentric: true, unified: false };
     }
     return { v1Permission: v1, v2Relation: v2, hostCentric: false, unified: false };

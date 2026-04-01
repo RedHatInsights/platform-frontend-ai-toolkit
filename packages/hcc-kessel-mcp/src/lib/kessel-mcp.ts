@@ -15,18 +15,20 @@ export async function run() {
   ];
 
   let server: McpServer | undefined = undefined;
+  let stopping = false;
 
   async function stopServer() {
+    if (stopping) return;
+    stopping = true;
     if (server) {
       await server.close();
-      return process.exit(0);
     }
-    throw new Error('HCC Kessel MCP server is not running');
+    process.exit(0);
   }
 
   try {
     server = new McpServer(
-      { name: 'HCC RBAC Kessel MCP Server', version: '1.0.0' },
+      { name: 'HCC Kessel MCP Server', version: '1.0.0' },
       {
         instructions:
           'You are a Model Context Protocol (MCP) server for migrating HCC frontend applications ' +

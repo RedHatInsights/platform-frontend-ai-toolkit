@@ -1,9 +1,7 @@
 import { z } from 'zod';
 import { CallToolResult, ErrorCode, McpError } from '@modelcontextprotocol/sdk/types.js';
 import { McpTool, PermissionMapping } from '../types';
-import { SERVICES, getKslUrl } from '../services';
-import { cachedFetch } from '../cachedFetch';
-import { parseKsl } from '../kslParser';
+import { fetchAllServiceMappings } from '../utils/fetchAllServiceMappings';
 
 function buildExample(v1Permission: string, mapping: PermissionMapping): string {
   const hostNote = mapping.hostCentric
@@ -37,17 +35,10 @@ export function getMigrationExampleTool(): McpTool {
   const tool = async (args: unknown): Promise<CallToolResult> => {
     const { v1Permission } = args as { v1Permission: string };
 
-    for (const service of SERVICES) {
-      let kslContent: string;
-      try {
-        kslContent = await cachedFetch<string>(getKslUrl(service));
-      } catch {
-        continue;
-      }
+    const allServices = await fetchAllServiceMappings();
 
-      const { mappings } = parseKsl(kslContent, service);
-      const mapping = mappings.find((m) => m.v1Permission === v1Permission);
-
+    for (const { permissions } of allServices) {
+      const mapping = permissions.mappings.find((m) => m.v1Permission === v1Permission);
       if (mapping) {
         return {
           content: [{ type: 'text', text: buildExample(v1Permission, mapping) }],

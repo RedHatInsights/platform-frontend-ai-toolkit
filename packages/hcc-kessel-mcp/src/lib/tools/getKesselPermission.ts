@@ -1,9 +1,7 @@
 import { z } from 'zod';
 import { CallToolResult, ErrorCode, McpError } from '@modelcontextprotocol/sdk/types.js';
 import { McpTool, PermissionMapping } from '../types';
-import { SERVICES, getKslUrl } from '../services';
-import { cachedFetch } from '../cachedFetch';
-import { parseKsl } from '../kslParser';
+import { fetchAllServiceMappings } from '../utils/fetchAllServiceMappings';
 
 function segmentMatches(pattern: string, value: string): boolean {
   return pattern === '*' || pattern === value;
@@ -53,25 +51,14 @@ export function getKesselPermissionTool(): McpTool {
   const tool = async (args: unknown): Promise<CallToolResult> => {
     const { v1Permission } = args as { v1Permission: string };
 
+    const allServices = await fetchAllServiceMappings();
+
     if (isWildcard(v1Permission)) {
-      // Expand wildcard: collect all matching relations across all services
-      const matches: Array<{ mapping: PermissionMapping; service: string }> = [];
-
-      for (const service of SERVICES) {
-        let kslContent: string;
-        try {
-          kslContent = await cachedFetch<string>(getKslUrl(service));
-        } catch {
-          continue;
-        }
-
-        const { mappings } = parseKsl(kslContent, service);
-        for (const mapping of mappings) {
-          if (matchesWildcard(v1Permission, mapping.v1Permission)) {
-            matches.push({ mapping, service });
-          }
-        }
-      }
+      const matches = allServices.flatMap(({ service, permissions }) =>
+        permissions.mappings
+          .filter((m) => matchesWildcard(v1Permission, m.v1Permission))
+          .map((mapping) => ({ mapping, service }))
+      );
 
       if (matches.length === 0) {
         throw new McpError(
@@ -94,23 +81,14 @@ export function getKesselPermissionTool(): McpTool {
       return { content: [{ type: 'text', text: lines.join('\n') }] };
     }
 
-    // Exact match path
-    for (const service of SERVICES) {
-      let kslContent: string;
-      try {
-        kslContent = await cachedFetch<string>(getKslUrl(service));
-      } catch {
-        continue;
-      }
-
-      const { mappings, deprecatedV1Only } = parseKsl(kslContent, service);
-
-      const mapping = mappings.find((m) => m.v1Permission === v1Permission);
+    // Exact match
+    for (const { service, permissions } of allServices) {
+      const mapping = permissions.mappings.find((m) => m.v1Permission === v1Permission);
       if (mapping) {
         return { content: [{ type: 'text', text: formatSingleMapping(mapping, service).join('\n') }] };
       }
 
-      if (deprecatedV1Only.includes(v1Permission.replace(/:/g, '_'))) {
+      if (permissions.deprecatedV1Only.includes(v1Permission.replace(/:/g, '_'))) {
         return {
           content: [
             {
