@@ -21,7 +21,7 @@ export async function run() {
       await server.close();
       return process.exit(0);
     }
-    throw new Error('HCC RBAC Kessel MCP server is not running');
+    throw new Error('HCC Kessel MCP server is not running');
   }
 
   try {
@@ -47,7 +47,7 @@ export async function run() {
     await server.connect(transport);
   } catch (error) {
     throw new Error(
-      `Failed to start HCC RBAC Kessel MCP server: ${(error as Error).message}`
+      `Failed to start HCC Kessel MCP server: ${(error as Error).message}`
     );
   }
 }

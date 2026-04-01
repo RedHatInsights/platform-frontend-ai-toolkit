@@ -1,12 +1,12 @@
 {
-  "name": "@redhat-cloud-services/hcc-rbac-kessel-mcp",
+  "name": "@redhat-cloud-services/hcc-kessel-mcp",
   "version": "0.1.0",
-  "description": "MCP server for RBAC v1 → Kessel (v2) permission migration in HCC frontends",
+  "description": "MCP server for HCC service permission mapping and Kessel (v2) migration",
   "main": "./dist/index.js",
   "module": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "bin": {
-    "hcc-rbac-kessel-mcp": "dist/index.js"
+    "hcc-kessel-mcp": "dist/index.js"
   },
   "exports": {
     "./package.json": "./package.json",
@@ -18,8 +18,8 @@
   },
   "keywords": [
     "hcc",
-    "rbac",
     "kessel",
+    "permissions",
     "mcp",
     "red hat"
   ],
@@ -28,7 +28,7 @@
   "repository": {
     "type": "git",
     "url": "https://github.com/RedHatInsights/platform-frontend-ai-toolkit",
-    "directory": "packages/hcc-rbac-kessel-mcp"
+    "directory": "packages/hcc-kessel-mcp"
   },
   "files": [
     "dist",

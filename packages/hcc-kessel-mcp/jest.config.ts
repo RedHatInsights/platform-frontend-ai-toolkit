@@ -1,6 +1,6 @@
 /* eslint-disable */
 export default {
-  displayName: '@redhat-cloud-services/hcc-rbac-kessel-mcp',
+  displayName: '@redhat-cloud-services/hcc-kessel-mcp',
   preset: '../../jest.preset.js',
   testEnvironment: 'node',
   transform: {
@@ -10,7 +10,7 @@ export default {
     }],
   },
   moduleFileExtensions: ['ts', 'js', 'html'],
-  coverageDirectory: '../../coverage/packages/hcc-rbac-kessel-mcp',
+  coverageDirectory: '../../coverage/packages/hcc-kessel-mcp',
   setupFilesAfterEnv: ['<rootDir>/src/test-setup.ts'],
   transformIgnorePatterns: [
     'node_modules/(?!(msw|@mswjs|until-async)/)',
