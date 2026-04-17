@@ -239,8 +239,6 @@ const { user } = useContext(ChromeAuthContext);
 **NOTE**: Only check these if the app is NOT using insights-chrome SegmentProvider.
 
 1. **SDK Initialization with Proxy**:
-
-1. **SDK Initialization with Proxy**:
 ```typescript
 // Check analytics.load() is configured for proxy API
 analytics.load('WRITE_KEY', {
@@ -1475,7 +1473,7 @@ Note: Requires Segment workspace admin access
 If you don't have access, escalate to team lead or data team
 ```
 
-### Scenario 2: Proxy Returns 500 Error
+### Scenario 3: Proxy Returns 500 Error
 ```
 Investigation:
 1. Check proxy server logs (if accessible)
@@ -1490,7 +1488,7 @@ Common Causes:
 - Proxy code error/bug
 ```
 
-### Scenario 3: Events Show 200 But Don't Appear in Segment
+### Scenario 4: Events Show 200 But Don't Appear in Segment
 ```
 Investigation:
 1. Wait 10 minutes (Segment has delays)
@@ -1506,7 +1504,7 @@ Common Causes:
 - Events being filtered/dropped by proxy
 ```
 
-### Scenario 4: CORS Errors with Proxy
+### Scenario 5: CORS Errors with Proxy
 ```
 Investigation:
 1. Check browser console for CORS error
