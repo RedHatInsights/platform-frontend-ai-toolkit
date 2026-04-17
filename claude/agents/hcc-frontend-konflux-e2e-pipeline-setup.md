@@ -93,7 +93,7 @@ You are a specialized agent for guiding developers through the process of settin
    - **CRITICAL:** Verify Playwright is installed in package.json:
      - Check `devDependencies` for `@playwright/test`
      - If missing, add it: `npm install -D @playwright/test`
-     - **Note the version number** (e.g., `"@playwright/test": "^1.40.0"`) - you'll need this for the pipeline configuration
+     - **Note the version number** (e.g., `"@playwright/test": "1.40.0"`) - you'll need this for the pipeline configuration
      - Verify `playwright.config.ts` or `playwright.config.js` exists
      - **CRITICAL:** Verify Playwright config uses sequential execution:
        - Config must include `workers: 1` (forces sequential test execution)
@@ -118,7 +118,7 @@ You are a specialized agent for guiding developers through the process of settin
        - Install matching Playwright version: `npm install -D @playwright/test@<matching-version>`
        - Use corresponding Docker image in pipeline: `mcr.microsoft.com/playwright:v<matching-version>-jammy`
        - Example: If auth package requires Playwright 1.40.0:
-         - package.json: `"@playwright/test": "^1.40.0"`
+         - package.json: `"@playwright/test": "1.40.0"`
          - pipeline YAML: `e2e-playwright-image: "mcr.microsoft.com/playwright:v1.40.0-jammy"`
    - Verify test script exists in package.json:
      - Should have a script like `"test:playwright": "playwright test"`
@@ -1265,7 +1265,7 @@ Solution:
        "test:playwright": "playwright test"
      },
      "devDependencies": {
-       "@playwright/test": "^1.40.0",  // Must match auth package requirement
+       "@playwright/test": "1.40.0",  // Must match auth package requirement
        "@redhat-cloud-services/playwright-test-auth": "^1.0.0"
      }
    }
@@ -1277,7 +1277,7 @@ Solution:
      value: "mcr.microsoft.com/playwright:v1.40.0-jammy"  # Matches package.json version
    ```
 
-3. **CRITICAL: Configure playwright.config.ts with shared authentication**:
+5. **CRITICAL: Configure playwright.config.ts with shared authentication**:
 
    Use the frontend-starter-app configuration as a reference template:
    - Repository: https://github.com/RedHatInsights/frontend-starter-app
@@ -1291,7 +1291,7 @@ Solution:
      testDir: './playwright',
 
      /* Run tests in files in parallel */
-     fullyParallel: true,
+     fullyParallel: false,
 
      /* Fail the build on CI if you accidentally left test.only in the source code. */
      forbidOnly: !!process.env.CI,
@@ -1301,7 +1301,7 @@ Solution:
 
      /* CRITICAL: Opt out of parallel tests on CI - use single worker */
      /* Sequential execution prevents race conditions and flaky tests in CI */
-     workers: process.env.CI ? 1 : undefined,
+     workers: 1,
 
      /* Reporter to use. See https://playwright.dev/docs/test-reporters */
      reporter: 'html',
@@ -1375,8 +1375,8 @@ Solution:
 **CRITICAL:** The E2E pipeline installs dependencies during the workspace setup phase. If @playwright/test is not listed in package.json dependencies or devDependencies, it won't be installed, and the pipeline will fail when trying to run the tests.
 
 **VERSION COMPATIBILITY:** The `e2e-playwright-image` parameter in your pipeline MUST match the version of `@playwright/test` in your package.json:
-- package.json has `"@playwright/test": "^1.40.0"` → use `e2e-playwright-image: "mcr.microsoft.com/playwright:v1.40.0-jammy"`
-- package.json has `"@playwright/test": "^1.45.0"` → use `e2e-playwright-image: "mcr.microsoft.com/playwright:v1.45.0-jammy"`
+- package.json has `"@playwright/test": "1.40.0"` → use `e2e-playwright-image: "mcr.microsoft.com/playwright:v1.40.0-jammy"`
+- package.json has `"@playwright/test": "1.45.0"` → use `e2e-playwright-image: "mcr.microsoft.com/playwright:v1.45.0-jammy"`
 - The version numbers must align to ensure browser binaries match the Playwright API version
 - Mismatched versions can cause cryptic errors about missing browsers or incompatible APIs
 
@@ -1395,7 +1395,7 @@ or
 Error: Your version of Playwright does not match the version of installed browsers
 ```
 or
-```
+```text
 Error: Cannot find module '@playwright/test' or version mismatch with @redhat-cloud-services/playwright-test-auth
 ```
 
@@ -1416,7 +1416,7 @@ Solution:
    ```json
    {
      "devDependencies": {
-       "@playwright/test": "^1.40.0",  // Must match auth package requirement
+       "@playwright/test": "1.40.0",  // Must match auth package requirement
        "@redhat-cloud-services/playwright-test-auth": "^1.0.0"
      }
    }
