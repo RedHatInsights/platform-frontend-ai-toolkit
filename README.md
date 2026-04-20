@@ -190,6 +190,45 @@ git commit -m "feat: update example agent"
 - **hcc-frontend-weekly-report** - Expert in generating weekly team reports by analyzing JIRA issues (user provides team identification criteria)
 - **hcc-frontend-yaml-setup-specialist** - Expert in creating frontend.yaml files for new applications with proper FEO configuration
 - **hcc-frontend-feo-migration-specialist** - Expert in migrating existing apps from static Chrome configuration to Frontend Operator managed system
+- **hcc-frontend-iqe-to-playwright-migration** - Expert in migrating IQE/Selenium tests to Playwright with Red Hat SSO authentication, generates QE verification docs
+
+### Test Migration
+
+The toolkit includes a specialized agent for migrating IQE (Selenium/Widgetastic) tests to modern Playwright:
+
+**hcc-frontend-iqe-to-playwright-migration** - Converts Python/pytest-based IQE tests to TypeScript Playwright tests with:
+- Proper `@redhat-cloud-services/playwright-test-auth` integration for Red Hat SSO
+- Repository organization (identifies which frontend repo owns each test)
+- Comprehensive QE verification documentation
+- CI-optimized configuration (single-threaded, no retries, max 2 failures)
+- Page object conversion from Widgetastic views
+- Selector modernization (XPath → role-based/CSS)
+
+**⚠️ Limitation:** Only supports tests using a single user account. Multi-user tests require manual conversion or splitting.
+
+**Quick Start:**
+```
+Migrate test_login.py from /path/to/iqe-platform-ui-plugin to Playwright for insights-chrome
+```
+
+📋 **For detailed migration guide**, see: [tests/migration-demo/QUICKSTART.md](tests/migration-demo/QUICKSTART.md)
+
+**Example Migration Output:**
+- Converted test files with proper authentication setup
+- Playwright configuration optimized for CI
+- Human-readable test step documentation for QE verification
+- Transplantation instructions for target repository
+
+The agent handles:
+- ✅ Global authentication setup (no per-test login)
+- ✅ Cookie consent prompt disabling
+- ✅ Parametrized test conversion (for loops or separate tests based on complexity)
+- ✅ Fixture adaptation (removes auth fixtures)
+- ✅ Wait pattern modernization
+- ✅ Selector conversion with rationale documentation
+- ✅ Dynamic test generation (pytest_generate_tests → programmatic test creation)
+- ✅ Environment state assumption detection (warns when tests assume pre-existing data/config)
+- ✅ Idempotency recommendations (API/UI setup, fixtures, teardown strategies)
 
 ### Infrastructure Agents
 
