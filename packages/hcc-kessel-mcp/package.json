@@ -1,6 +1,6 @@
 {
   "name": "@redhat-cloud-services/hcc-kessel-mcp",
-  "version": "0.2.2",
+  "version": "0.2.3",
   "description": "MCP server for HCC service permission mapping and Kessel (v2) migration",
   "main": "./dist/index.js",
   "module": "./dist/index.js",
