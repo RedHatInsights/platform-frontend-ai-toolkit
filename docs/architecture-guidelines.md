@@ -4,7 +4,7 @@
 
 The platform-frontend-ai-toolkit is a centralized monorepo that distributes AI development tools to HCC frontend and infrastructure teams through three channels:
 
-```
+```text
                           platform-frontend-ai-toolkit
                           ┌─────────────────────────┐
                           │                         │
@@ -47,7 +47,7 @@ The workspace uses Nx 22 with npm workspaces:
 
 Each MCP server package follows this layout:
 
-```
+```text
 packages/hcc-*-mcp/
 ├── src/
 │   ├── index.ts              # Entry point — MCP server setup + tool registration
@@ -69,7 +69,7 @@ packages/hcc-*-mcp/
 
 ### Build Pipeline
 
-```
+```text
 Source (.ts) ──► TypeScript Compiler ──► dist/ (.js + .d.ts)
                  (via @nx/js:tsc)
 ```
@@ -103,7 +103,7 @@ Two-level plugin structure:
 
 ### Pull Request Checks
 
-```
+```text
 PR opened/updated
     │
     ├── ci.yml
@@ -122,7 +122,7 @@ PR opened/updated
 
 ### Release Pipeline
 
-```
+```text
 Push to master
     │
     └── release.yml
@@ -147,10 +147,10 @@ Husky runs `npm run check-cursor-sync` before every push. This prevents accident
 
 The `scripts/convert-to-cursor.js` script transforms Claude agent Markdown files into Cursor `.mdc` rule files:
 
-1. Reads all `claude/agents/hcc-frontend-*.md` files
+1. Reads all `claude/agents/hcc-frontend-*.md` and `claude/agents/hcc-infra-*.md` files
 2. Parses YAML frontmatter (`description`, `capabilities`)
 3. Converts to Cursor MDC format (different frontmatter schema)
-4. Strips `hcc-frontend-` prefix from output filenames
+4. Strips `hcc-frontend-` / `hcc-infra-` prefixes from output filenames
 5. Writes to `cursor/rules/`
 
 The `scripts/check-cursor-sync.js` script validates:

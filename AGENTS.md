@@ -18,12 +18,12 @@ An Nx monorepo serving as a centralized hub for AI-assisted development tools us
 | Jest 30 | Unit testing for MCP server packages |
 | MCP SDK ^1.22 | Model Context Protocol server framework |
 | Zod ^3.25 | Schema validation (required by MCP SDK for tool definitions) |
-| Husky | Pre-commit hooks (cursor-sync check) |
+| Husky | Pre-push hooks (cursor-sync check) |
 | Prettier | Code formatting |
 
 ## Project Structure
 
-```
+```text
 platform-frontend-ai-toolkit/
 ├── .claude-plugin/
 │   └── marketplace.json          # Marketplace config (plugin discovery)
@@ -36,8 +36,8 @@ platform-frontend-ai-toolkit/
 │   ├── .claude-plugin/
 │   │   └── plugin.json           # Plugin manifest (name, version, MCP servers)
 │   └── agents/                   # Claude sub-agent definitions (.md)
-│       ├── hcc-frontend-*.md     # Frontend agents (30 files)
-│       └── hcc-frontend-db-*.md  # Infrastructure/DB upgrade agents
+│       ├── hcc-frontend-*.md     # Frontend + DB upgrade agents (30 files)
+│       └── hcc-infra-*.md        # Infrastructure agents (supported by converter)
 ├── cursor/
 │   ├── rules/                    # Auto-generated Cursor rules (.mdc)
 │   └── mcp-template.json         # MCP server config template for Cursor

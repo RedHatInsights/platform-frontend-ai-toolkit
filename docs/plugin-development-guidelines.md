@@ -63,11 +63,16 @@ The conversion script (`scripts/convert-to-cursor.js`) transforms Claude Markdow
 
 ### 5. Bump Plugin Version
 
-Update the version in `claude/.claude-plugin/plugin.json` so users receive the update:
+Update the version in **both** plugin manifests so users receive the update:
+
+1. `claude/.claude-plugin/plugin.json` — the plugin manifest
+2. `.claude-plugin/marketplace.json` — the marketplace metadata
+
+Both must stay in sync:
 
 ```json
 {
-  "version": "1.10.3"  // Increment appropriately
+  "version": "1.10.3"  // Increment appropriately — same value in both files
 }
 ```
 
@@ -268,7 +273,7 @@ Husky runs `npm run check-cursor-sync` before every push. Fix sync issues with `
 - [ ] Usage examples included
 - [ ] `npm run convert-cursor` executed
 - [ ] `npm run check-cursor-sync` passes
-- [ ] Plugin version bumped in `claude/.claude-plugin/plugin.json`
+- [ ] Plugin version bumped in `claude/.claude-plugin/plugin.json` and `.claude-plugin/marketplace.json`
 - [ ] Both `.md` and `.mdc` files committed together
 
 ## Checklist for New MCP Servers
