@@ -949,8 +949,9 @@ converted-tests/
 │   │   └── tests/
 │   │       └── all-services.spec.ts
 │   └── docs/
-│       └── migration/
-│           └── all-services-test-steps.md
+│       └── playwright/
+│           └── migration/
+│               └── all-services-test-steps.md
 │
 ├── insights-inventory-frontend/
 │   ├── playwright.config.ts
@@ -1645,9 +1646,7 @@ When user provides repository path:
    - Create topbar component page object
    - Add migration documentation for QE verification
 
-   Migrated from iqe-platform-ui-plugin/tests/test_chrome_components.py
-
-   Co-Authored-By: Claude Sonnet 4.5 <noreply@anthropic.com>"
+   Migrated from iqe-platform-ui-plugin/tests/test_chrome_components.py"
    ```
 
 5. **Create Pull Request:**
