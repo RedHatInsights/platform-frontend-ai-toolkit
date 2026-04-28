@@ -1713,8 +1713,8 @@ After the PR is created, monitor and address CodeRabbit comments.
 Wait a few minutes for CodeRabbit to analyze the PR, then:
 
 ```bash
-# Fetch PR comments
-gh pr view <pr-number> --json comments --jq '.comments[] | select(.author.login == "coderabbitai") | {priority: .body | match("Priority: (\\w+)") | .captures[0].string, body: .body}'
+# Fetch PR review thread comments from CodeRabbit
+gh pr view <pr-number> --json reviewThreads --jq '.reviewThreads[].comments[] | select(.author.login | ascii_downcase == "coderabbitai") | {priority: (.body | match("(?i)priority:\\s*([A-Za-z0-9_-]+)") | .captures[0].string // (.body | if test("^🔴") then "Critical" elif test("^🟠") then "Major" elif test("^🟡") then "Minor" else "Unknown" end)), body: .body}'
 ```
 
 #### B. Filter for Major+ Priority
@@ -1742,7 +1742,7 @@ For each major+ comment:
    ```bash
    # Make code changes using Edit tool
    # Commit with reference to comment
-   git add .
+   git add <changed-files>  # Stage only the specific files you modified
    git commit -m "fix: address CodeRabbit feedback - <brief description>
 
    Resolves CodeRabbit comment about <issue>"
