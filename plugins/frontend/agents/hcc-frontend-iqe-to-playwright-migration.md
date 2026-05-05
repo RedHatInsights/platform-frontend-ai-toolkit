@@ -1445,39 +1445,58 @@ def test_conditional_feature(application):
 
 **Migration Strategy:**
 
-When encountering skipped IQE tests, you MUST:
+When encountering skipped IQE tests:
 
-1. **STOP the conversion**
-2. **Warn the user explicitly:**
+1. **Migrate the test as-is** - Convert the test logic to Playwright
+2. **Mark as skipped** - Use `test.skip()` with JIRA reference
+3. **Create JIRA issue** - Track future rework/verification
+4. **Document skip status** - Note JIRA issue in migration docs
 
-```text
-⚠️ SKIPPED TEST DETECTED
+**Step 1: Migrate the Test**
 
-Test: test_new_feature()
-File: test_features.py:45
-Skip Reason: "Feature not implemented"
+Convert the test normally, preserving the original logic:
 
-This test was skipped in IQE. Before migrating, you should:
-
-1. **Verify the reason is still valid** - Has the feature been implemented since?
-2. **Review the test logic** - UI functionality may have changed significantly
-3. **Confirm the test still works** - The test logic may be outdated
-
-Options:
-1. Skip migration entirely (test is no longer relevant)
-2. Migrate and mark for manual review/verification
-3. Update test logic before migration (if you know what changed)
-
-⚠️ IMPORTANT: If migrated, this test REQUIRES manual verification by QE
-to ensure it matches current UI behavior.
-
-How would you like to proceed?
+```typescript
+// Migrate test logic as-is, even if potentially outdated
+test.skip('new feature functionality', async ({ page }) => {
+  // Original test logic converted to Playwright
+  await page.goto('/features');
+  await expect(page.getByText('New Feature')).toBeVisible({ timeout: TIMEOUTS.ELEMENT_VISIBLE });
+  // ... rest of test logic
+});
 ```
 
-3. **Wait for user decision**
-4. **Document the skip status** if migrating
+**Step 2: Create JIRA Issue**
 
-**If User Wants to Migrate Skipped Tests:**
+Create a JIRA issue to track future verification and rework. Use the Bash tool with `gh` CLI or direct JIRA API:
+
+```bash
+# Example JIRA issue creation (adjust based on your JIRA setup)
+# Title: "Verify and update migrated test: test_new_feature"
+# Description:
+# - Original IQE test was skipped with reason: "Feature not implemented"
+# - Test has been migrated to Playwright but needs verification
+# - Actions required:
+#   1. Verify feature is now implemented
+#   2. Review test logic for accuracy
+#   3. Update test if UI has changed
+#   4. Remove skip or update skip reason
+```
+
+**Step 3: Add JIRA Reference to Skip**
+
+Update the test skip to reference the JIRA issue:
+
+```typescript
+// ✅ DO: Include JIRA issue in skip reason
+test.skip('new feature functionality - TODO: verify and update [JIRA-12345]', async ({ page }) => {
+  await page.goto('/features');
+  await expect(page.getByText('New Feature')).toBeVisible({ timeout: TIMEOUTS.ELEMENT_VISIBLE });
+  // ... rest of test logic
+});
+```
+
+**Avoid Conditional Skips:**
 
 ```typescript
 // ❌ DON'T: Use conditional skips
@@ -1488,12 +1507,12 @@ test('admin feature', async ({ page }) => {
   // Test logic
 });
 
-// ✅ DO: Use test.skip() with clear reasoning (only if absolutely necessary)
-test.skip('admin feature - not available in production', async ({ page }) => {
+// ✅ DO: Use test.skip() with JIRA reference
+test.skip('admin feature - verify in prod [JIRA-12346]', async ({ page }) => {
   // Test logic
 });
 
-// ✅ BETTER: Split into separate test files by environment
+// ✅ BETTER: Split into separate test files by environment if needed
 // tests/staging/admin-features.spec.ts
 test('admin feature', async ({ page }) => {
   // Only runs in staging (controlled by test runner config)
@@ -1502,50 +1521,40 @@ test('admin feature', async ({ page }) => {
 
 **Document Migrated Skipped Tests:**
 
-In migration documentation, add a prominent warning:
+In migration documentation, reference the JIRA issue:
 
 ```markdown
 ### Test: test_new_feature
 
-⚠️ **REQUIRES MANUAL VERIFICATION**
+⚠️ **MIGRATED AS SKIPPED - VERIFICATION REQUIRED**
 
 **Original Status:** SKIPPED in IQE
-**Skip Reason:** "Feature not implemented"
-**Migration Status:** Converted but UNTESTED
+**Original Skip Reason:** "Feature not implemented"
+**Playwright Status:** SKIPPED (migrated)
+**JIRA Issue:** [JIRA-12345](https://jira.example.com/browse/JIRA-12345)
 
-**CRITICAL ACTIONS REQUIRED:**
-1. ✅ Verify the feature is now implemented in the UI
-2. ✅ Review test logic - UI may have changed since test was written
-3. ✅ Run test manually and confirm it passes
-4. ✅ Update test logic if UI behavior differs from expectations
-5. ✅ Remove skip or re-skip with updated reasoning
+**Why Skipped:**
+This test was skipped in IQE and has been migrated as-is. The test logic
+may be outdated and requires verification before enabling.
 
-**Risk Level:** HIGH - Test logic may be outdated or incorrect
+**Next Steps:**
+See JIRA issue JIRA-12345 for:
+- Verification requirements
+- Test logic review
+- UI change assessment
+- Unskip criteria
+
+**Risk Level:** MEDIUM - Test migrated but unverified
 ```
 
-**Best Practices for Skip Migration:**
+**Best Practices for Skipped Test Migration:**
 
-1. **Prefer removing over migrating** - If a test has been skipped for months/years, consider not migrating it
+1. **Always migrate with JIRA** - Create a tracking issue for every skipped test
 2. **No conditional skips** - Avoid `if/else` logic that conditionally skips tests
-3. **Clear skip reasons** - If you must skip, make the reason obvious in the test name
-4. **Immediate review** - Flag all migrated skipped tests for QE review before PR merge
-5. **Update documentation** - Always note that skipped tests need verification
-
-**Questions to Ask User:**
-
-When encountering skipped tests:
-
-1. **"Is this test still relevant?"**
-   - No → Skip migration entirely
-   - Yes → Migrate but mark for review
-
-2. **"Do you know if the feature/UI has changed since this was skipped?"**
-   - Yes → Update test logic before migration
-   - No → Migrate as-is but require manual verification
-
-3. **"Should I migrate this test at all?"**
-   - Consider the cost of maintaining outdated test logic
-   - Skipped tests often indicate incomplete features or deprecated functionality
+3. **Include JIRA in skip reason** - Make it easy to find the tracking issue
+4. **Preserve original logic** - Migrate test as-is, even if potentially outdated
+5. **Document clearly** - Explain why skipped and link to JIRA for next steps
+6. **Track in PR description** - List all skipped tests and their JIRA issues
 
 ### Phase 3: Documentation Generation
 
@@ -1955,16 +1964,18 @@ If CodeRabbit replies with follow-up comments, repeat the process until resolved
 - ✅ Preserve test intent and coverage exactly
 - ✅ Use Playwright best practices (auto-waiting, role-based selectors)
 - ✅ Include environment variable requirements in docs
-- ✅ Identify skipped tests and warn user before migration
-- ✅ Require manual verification for all migrated skipped tests
-- ✅ Document skip reasons and verification requirements prominently
+- ✅ Identify skipped tests during migration
+- ✅ Migrate skipped tests with test.skip() and JIRA reference
+- ✅ Create JIRA issues to track future verification of skipped tests
+- ✅ Document skip reasons with JIRA issue links prominently
 
 ### DON'T:
 - ❌ Provide CI/CD pipeline setup guidance (pipelines already exist)
 - ❌ Hard-code timeout values (60000, 30000, etc.) - use constants
 - ❌ Use `page.waitForLoadState()` - background activity makes it unreliable
 - ❌ Use conditional skips in tests (if/else logic that skips)
-- ❌ Migrate skipped tests without warning user and requiring manual verification
+- ❌ Migrate skipped tests without creating JIRA issue for future verification
+- ❌ Forget to include JIRA reference in test.skip() reason
 - ❌ Create manual login/logout logic in regular tests (use global auth)
 - ❌ Allow tests that modify auth state to use shared session
 - ❌ Skip checking for existing test coverage overlap
@@ -1985,7 +1996,7 @@ Before starting conversion:
 3. ☐ **Check for existing test coverage overlap in destination repo**
 4. ☐ **Ask user how to handle any overlapping coverage**
 5. ☐ Identify tests that may affect auth state (logout, org switch, etc.)
-6. ☐ **Identify skipped tests (@pytest.mark.skip, pytest.skip()) and warn user**
+6. ☐ **Identify skipped tests (@pytest.mark.skip, pytest.skip())**
 7. ☐ Create comprehensive migration plan with repo assignments
 8. ☐ Get user approval on repository assignments
 9. ☐ Clarify selector strategy preference
@@ -1996,11 +2007,13 @@ During conversion:
 3. ☐ **Verify no duplicate authentication in tests**
 4. ☐ **Use isolated browser context for auth-affecting tests**
 5. ☐ **Avoid conditional skips - no if/else logic that skips tests**
-6. ☐ **For migrated skipped tests: add prominent manual verification warnings**
-7. ☐ Convert page objects with proper imports
-8. ☐ Convert tests using playwright-test-auth patterns
-9. ☐ **Generate documentation for each test in destination repo structure**
-10. ☐ Organize files by target repository
+6. ☐ **For skipped tests: create JIRA issue for future verification**
+7. ☐ **Mark skipped tests with test.skip() including JIRA reference**
+8. ☐ **Document skipped tests with JIRA issue link in migration docs**
+9. ☐ Convert page objects with proper imports
+10. ☐ Convert tests using playwright-test-auth patterns
+11. ☐ **Generate documentation for each test in destination repo structure**
+12. ☐ Organize files by target repository
 
 After conversion:
 1. ☐ Create migration summary (NO CI pipeline guidance)
