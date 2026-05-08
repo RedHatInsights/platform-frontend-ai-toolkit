@@ -257,7 +257,7 @@ def test_create_and_verify_user(application):
 
 2. **Ask user for clarification:**
 
-```text
+````text
 ⚠️ MIXED UI/API TEST DETECTED
 
 Test: test_create_and_verify_user()
@@ -286,7 +286,7 @@ test('created user appears in UI', async ({ page, request }) => {
 ```
 
 Please advise on primary test intent.
-```
+````
 
 ### Documentation for Skipped Non-UI Tests
 
@@ -346,7 +346,7 @@ The following tests validate application functionality without UI and should be 
 2. **Distinguish categories** - IQE plugin tests (skip) vs application tests (skip + JIRA)
 3. **Ask when ambiguous** - If unsure whether a test is UI or non-UI, ask the user
 4. **Create JIRA for valuable tests** - API/backend tests that validate application functionality
-5. **Skip plugin tests silently** - IQE plugin unit tests don't need JIRA or migration tracking
+5. **Skip plugin tests (no JIRA), but document in summary** - IQE plugin unit tests don't need JIRA or migration tracking, but inform the user and include in migration summary
 6. **Document thoroughly** - List all skipped tests with categories, reasons, and JIRA links
 7. **Separate concerns** - UI tests → Playwright, API tests → separate framework
 8. **Preserve setup** - API calls used for test setup/teardown are OK in Playwright tests
@@ -2881,7 +2881,7 @@ If CodeRabbit replies with follow-up comments, repeat the process until resolved
 - ✅ Create JIRA issues to track future verification of skipped tests
 - ✅ Document skip reasons with JIRA issue links prominently
 - ✅ Identify non-UI tests (API, CLI, backend) early in Phase 1
-- ✅ Distinguish IQE plugin unit tests (skip quietly) from application tests (create JIRA)
+- ✅ Distinguish IQE plugin unit tests (skip, no JIRA; inform user and document in summary) from application tests (skip + create JIRA)
 - ✅ Create JIRA tickets for API/backend tests worth migrating later
 - ✅ Document all non-UI tests with categories and recommendations
 
@@ -2928,11 +2928,11 @@ During conversion:
 3. ☐ **Verify no duplicate authentication in tests**
 4. ☐ **Use isolated browser context for auth-affecting tests**
 5. ☐ **Avoid conditional skips - no if/else logic that skips tests**
-6. ☐ **For skipped UI tests: create JIRA issue for future verification**
-7. ☐ **For API/backend tests: create JIRA issue for future migration**
-8. ☐ **For IQE plugin tests: skip without JIRA**
-9. ☐ **Mark skipped tests with test.skip() including JIRA reference**
-10. ☐ **Document skipped tests with JIRA issue link in migration docs**
+6. ☐ **For skipped UI tests (migrated but deferred): create JIRA issue for future verification**
+7. ☐ **For API/backend tests (not migrated): create JIRA issue for future migration to appropriate framework**
+8. ☐ **For IQE plugin tests (not migrated): skip without JIRA, inform user, document in summary**
+9. ☐ **For migrated UI tests marked as skipped (item 6 only): use test.skip() with JIRA reference**
+10. ☐ **Document skipped/non-migrated tests with JIRA issue links in migration docs**
 11. ☐ Convert page objects with proper imports
 12. ☐ Convert tests using playwright-test-auth patterns
 13. ☐ **Generate documentation for each test in destination repo structure**
