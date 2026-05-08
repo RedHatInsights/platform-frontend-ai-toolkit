@@ -994,6 +994,282 @@ For each test, you MUST:
 3. Organize converted tests by target repository
 4. Note any tests that cover multiple repositories (may need to be split)
 
+### Frontend Repository Mapping Guide
+
+Use this reference to identify which repository should own a test based on functionality:
+
+#### **insights-chrome**
+Platform chroming, shell, and global UI components.
+
+**Owns tests for:**
+- Chrome masthead/header (user menu, org switcher, settings icon)
+- Global navigation sidebar
+- All Services page
+- Help menu and help drawer
+- Settings menu and settings pages
+- Platform-wide modals (feedback, analytics opt-in)
+- Global search functionality
+- Platform routing and navigation
+- Authentication flow UI (login redirects, session management UI)
+- Cookie consent banner
+- Platform error pages (404, 500, forbidden)
+- Platform-wide notifications/alerts
+
+**URL patterns:**
+- `/` (root/landing after auth)
+- `/settings/*`
+- `/insights/*` (chrome shell wrapping other apps)
+- `/allservices`
+
+**Example tests:**
+- "User can access settings menu"
+- "Help menu displays available resources"
+- "All Services page lists available applications"
+- "Org switcher allows organization change"
+
+#### **insights-rbac-ui**
+Role-based access control and user permission management.
+
+**Owns tests for:**
+- My User Access page
+- User permission management
+- Role creation and assignment
+- Group management
+- Access request workflows
+- Permission validation and display
+- RBAC-specific settings
+
+**URL patterns:**
+- `/settings/rbac/*`
+- `/iam/user-access/*`
+
+**Example tests:**
+- "User can view their assigned roles"
+- "User can request additional access"
+- "Admin can create custom roles"
+- "User permissions display correctly"
+
+#### **learning-resources**
+In-app help, tutorials, and learning content.
+
+**Owns tests for:**
+- Help menu content
+- Quick starts and tutorials
+- In-app documentation links
+- Learning resource panels
+- Contextual help widgets
+- Getting started guides
+
+**URL patterns:**
+- May be integrated into other apps as widgets/panels
+- Help drawer content
+
+**Example tests:**
+- "Help menu displays learning resources"
+- "Quick start tutorial launches correctly"
+- "Learning resources panel shows relevant guides"
+
+#### **insights-inventory-frontend**
+System inventory management.
+
+**Owns tests for:**
+- Systems/hosts list and details
+- Inventory filtering and search
+- System groups
+- System registration UI
+- System details pages
+- Tags management
+
+**URL patterns:**
+- `/insights/inventory/*`
+
+**Example tests:**
+- "Systems list displays registered hosts"
+- "User can filter systems by OS version"
+- "System details page shows accurate information"
+
+#### **insights-advisor-frontend**
+Red Hat Insights Advisor recommendations.
+
+**Owns tests for:**
+- Recommendations list
+- Recommendation details
+- Rule management
+- Remediation suggestions from Advisor
+- System recommendations
+
+**URL patterns:**
+- `/insights/advisor/*`
+
+**Example tests:**
+- "Recommendations list displays active issues"
+- "User can acknowledge a recommendation"
+- "Recommendation details show affected systems"
+
+#### **compliance-frontend**
+Compliance scanning and reporting.
+
+**Owns tests for:**
+- Compliance policies
+- Compliance scans
+- Compliance reports
+- Policy creation and editing
+- SCAP profiles
+
+**URL patterns:**
+- `/insights/compliance/*`
+
+**Example tests:**
+- "Compliance policies list displays configured policies"
+- "User can create new compliance policy"
+- "Compliance scan results display correctly"
+
+#### **landing-page-frontend**
+Platform landing page after authentication.
+
+**Owns tests for:**
+- Landing page layout
+- Featured applications
+- Quick links
+- Onboarding flows
+- Welcome messages
+
+**URL patterns:**
+- `/` (landing page variant)
+- Platform landing experience
+
+**Example tests:**
+- "Landing page displays featured applications"
+- "Quick links navigate to correct destinations"
+
+#### **Other Common Repositories**
+
+**insights-notifications-frontend** - Notifications and event management
+- `/settings/notifications/*`
+
+**insights-dashboard** - Platform dashboard
+- `/insights/dashboard/*`
+
+**user-preferences-frontend** - User preference management
+- `/settings/my-user-preferences/*`
+
+**insights-remediations-frontend** - Remediation playbooks
+- `/insights/remediations/*`
+
+**insights-vulnerability-frontend** - Vulnerability management (CVEs)
+- `/insights/vulnerability/*`
+
+**insights-patch-frontend** - Patch management
+- `/insights/patch/*`
+
+### Repository Identification Decision Tree
+
+When analyzing a test, use this decision tree:
+
+```text
+1. Does the test interact with chrome masthead/navigation/help menu/settings?
+   → YES: insights-chrome
+   → NO: Continue
+
+2. Does the test focus on RBAC, roles, permissions, or "My User Access"?
+   → YES: insights-rbac-ui
+   → NO: Continue
+
+3. Does the test focus on learning resources, tutorials, or help content?
+   → YES: learning-resources
+   → NO: Continue
+
+4. Check the URL pattern in the test:
+   - /insights/inventory/* → insights-inventory-frontend
+   - /insights/advisor/* → insights-advisor-frontend
+   - /insights/compliance/* → compliance-frontend
+   - /insights/vulnerability/* → insights-vulnerability-frontend
+   - /insights/patch/* → insights-patch-frontend
+   - /insights/remediations/* → insights-remediations-frontend
+   - /settings/notifications/* → insights-notifications-frontend
+   - /settings/rbac/* or /iam/user-access/* → insights-rbac-ui
+   - /settings/* (general) → insights-chrome
+   - / (landing) → landing-page-frontend or insights-chrome
+
+5. Still unclear?
+   → ASK THE USER with specific details about what the test validates
+```
+
+### Multi-Repository Tests
+
+Some tests may span multiple repositories:
+
+**Example:**
+```python
+# Test navigates through chrome → inventory → advisor
+def test_cross_app_workflow(application):
+    # Chrome: Navigate to inventory
+    view = navigate_to(application.platform_ui, "Inventory")
+
+    # Inventory: Select a system
+    view.systems.select_first()
+
+    # Advisor: View recommendations for system
+    view.go_to_recommendations()
+```
+
+**Handling multi-repository tests:**
+
+1. **Identify primary functionality** - What is the test primarily validating?
+   - Navigation flow → insights-chrome
+   - Inventory behavior → insights-inventory-frontend
+   - Recommendations → insights-advisor-frontend
+
+2. **Ask user for decision:**
+   ```text
+   This test spans multiple repositories:
+   - insights-chrome (navigation)
+   - insights-inventory-frontend (system selection)
+   - insights-advisor-frontend (recommendations)
+
+   Should I:
+   1. Keep as single integration test in insights-chrome (navigation focus)
+   2. Keep as single integration test in insights-inventory-frontend (inventory focus)
+   3. Split into separate tests for each repository
+
+   Please advise on primary test focus.
+   ```
+
+3. **Document cross-repository dependencies** in migration docs
+
+### Using the Repository Guide
+
+**During Phase 1 (Repository Identification):**
+
+1. Read the test code and identify:
+   - URL patterns visited
+   - UI components interacted with
+   - Functionality being validated
+
+2. Match against repository guide:
+   - Check URL patterns first (most reliable)
+   - Check functionality descriptions
+   - Use decision tree if unclear
+
+3. If confident (90%+), assign repository
+4. If uncertain, use the guide to ask specific questions:
+   ```text
+   This test navigates to /settings/notifications and validates notification preferences.
+
+   Based on the repository guide, this appears to be:
+   - insights-notifications-frontend (URL pattern match: /settings/notifications/*)
+
+   However, it also interacts with the settings menu (insights-chrome).
+
+   Should this test live in:
+   1. insights-notifications-frontend (notification functionality)
+   2. insights-chrome (settings menu integration)
+
+   Please confirm.
+   ```
+
+5. Document decision rationale in migration notes
+
 ## AUTHENTICATION SETUP
 
 **CRITICAL:** All converted tests MUST use `@redhat-cloud-services/playwright-test-auth` for Red Hat SSO authentication.
@@ -1475,18 +1751,15 @@ ADMIN_PASSWORD=<admin-account-password>
 
 2. **Identify Target Frontend Repositories**
    - For EACH test, determine which frontend app it tests:
-     - Check URLs visited (e.g., `/insights/inventory` → inventory frontend)
-     - Check navigation destinations (e.g., "AllServices" → chrome)
-     - Check page objects used (e.g., `SupportCasePage` → chrome)
+     - Check URLs visited (e.g., `/insights/inventory` → insights-inventory-frontend)
+     - Check navigation destinations (e.g., "AllServices" → insights-chrome)
+     - Check page objects used (e.g., `SupportCasePage` → insights-chrome)
      - Check test metadata/markers (e.g., `@pytest.mark.chrome_gate`)
+     - Check functionality being tested (RBAC → insights-rbac-ui, help menu → learning-resources)
 
-   - Common mappings:
-     - Platform chrome/shell → `insights-chrome`
-     - Inventory/systems → `insights-inventory-frontend`
-     - Advisor → `insights-advisor-frontend`
-     - Compliance → `compliance-frontend`
-     - All Services page → `insights-chrome`
-     - Landing page → `landing-page-frontend`
+   - **Use the Frontend Repository Mapping Guide** (see section above) for comprehensive mappings
+   - **Use the Repository Identification Decision Tree** for systematic repository assignment
+   - For multi-repository tests, identify primary functionality or ask user for guidance
 
 3. **Check for Existing Test Coverage Overlap**
    - For each target repository, read existing Playwright tests
