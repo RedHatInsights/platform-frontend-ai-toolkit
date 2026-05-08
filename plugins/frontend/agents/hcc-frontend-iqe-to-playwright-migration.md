@@ -878,8 +878,8 @@ Required Changes:
    - Reference: konflux-pipelines shared pipeline v2
 
 2. CREDENTIAL STORAGE
-   - Add credentials to konflux-user-data repository
-   - File: konflux-user-data/<appropriate-file>.yaml
+   - Add credentials to konflux-release-data repository
+   - File: konflux-release-data/<appropriate-file>.yaml
    - Format: Follow existing secret patterns in that repo
 
 3. TEST IMPLEMENTATION
@@ -890,23 +890,23 @@ Required Changes:
 How would you like to proceed?
 ```
 
-#### 2. Add Credentials to konflux-user-data
+#### 2. Add Credentials to konflux-release-data
 
-Credentials must be added to the appropriate file in the `konflux-user-data` repository:
+Credentials must be added to the appropriate file in the `konflux-release-data` repository:
 
 **User Guidance:**
 ```text
-You'll need to add the following credentials to konflux-user-data:
+You'll need to add the following credentials to konflux-release-data:
 
 Credentials needed:
 - ADMIN_USER
 - ADMIN_PASSWORD
 
 Steps:
-1. Clone konflux-user-data repository
+1. Clone konflux-release-data repository
 2. Locate the appropriate secrets file for your application
 3. Add the credentials following existing patterns
-4. Submit PR to konflux-user-data for review
+4. Submit PR to konflux-release-data for review
 
 Example pattern (check existing files for exact format):
 ```yaml
@@ -1063,8 +1063,8 @@ THREE REQUIRED CHANGES:
    - This version supports flexible secrets for custom credentials
 
 2. 🔐 CREDENTIAL STORAGE (Security/DevOps)
-   - Add ADMIN_USER and ADMIN_PASSWORD to konflux-user-data repository
-   - File: konflux-user-data/<app-name>-secrets.yaml
+   - Add ADMIN_USER and ADMIN_PASSWORD to konflux-release-data repository
+   - File: konflux-release-data/<app-name>-secrets.yaml
    - Follow existing secret patterns in that repository
 
 3. 🧪 TEST IMPLEMENTATION (QE/Development)
@@ -1078,7 +1078,7 @@ Would you like me to:
 3. Provide detailed implementation guidance for all 3 changes
 
 Note: Options 1 and 2 (pipeline + credentials) require separate PRs to
-konflux-pipelines and konflux-user-data repositories.
+konflux-pipelines and konflux-release-data repositories.
 ```
 
 4. **Wait for user decision**
@@ -1111,8 +1111,8 @@ This test requires credentials beyond the standard E2E_USER/E2E_PASSWORD.
 - [ ] Required for flexible secrets support
 
 #### 2. Credential Storage (DevOps/Security)
-- [ ] Add credentials to konflux-user-data repository
-- [ ] File: `konflux-user-data/<app-name>-secrets.yaml`
+- [ ] Add credentials to konflux-release-data repository
+- [ ] File: `konflux-release-data/<app-name>-secrets.yaml`
 - [ ] Follow existing secret patterns
 
 #### 3. Test Implementation (Already Completed)
