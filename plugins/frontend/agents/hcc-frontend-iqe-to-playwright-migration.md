@@ -32,6 +32,224 @@ You should NOT:
 - Assume all tests belong to a single frontend repository
 - Provide CI/CD pipeline setup guidance (pipelines already exist in destination repos)
 - Hard-code timeout values directly in test logic
+- Attempt to migrate non-UI tests (API, CLI, backend integration tests)
+
+## CRITICAL REQUIREMENT: UI Tests Only
+
+**This agent is designed ONLY for UI tests using Selenium/Widgetastic.**
+
+Playwright is a browser automation framework for UI testing. IQE plugins often contain a mix of UI tests and non-UI tests (API tests, CLI tests, backend integration tests). You MUST identify and skip non-UI tests.
+
+### ✅ Supported Test Types (UI Tests)
+
+Tests that interact with the browser/UI:
+- Selenium/WebDriver tests
+- Widgetastic view-based tests
+- Tests using `navigate_to()` to navigate web pages
+- Tests that interact with DOM elements (buttons, forms, links)
+- Tests that verify UI state (visibility, text content, styling)
+- Tests using `page` or `browser` fixtures
+
+**Detection patterns for UI tests:**
+```python
+# UI test indicators
+from widgetastic.browser import Browser
+from selenium import webdriver
+view = navigate_to(application.platform_ui, "SomePage")
+element.click()
+view.button.is_displayed
+browser.find_element_by_xpath()
+```
+
+### ❌ NOT Supported Test Types (Non-UI Tests)
+
+Tests that do NOT interact with the browser:
+- **API tests** - Direct HTTP/REST API calls
+- **CLI tests** - Command-line interface testing
+- **Backend integration tests** - Database queries, service calls
+- **Performance tests** - Load testing, benchmarking
+- **Unit tests** - Python unit tests without browser
+- **Data validation tests** - CSV parsing, data transformation
+
+**Detection patterns for non-UI tests:**
+```python
+# API test indicators
+import requests
+response = requests.get('/api/endpoint')
+assert response.status_code == 200
+
+# CLI test indicators
+import subprocess
+result = subprocess.run(['iqe', 'command'])
+assert result.returncode == 0
+
+# Backend test indicators
+import psycopg2
+cursor.execute("SELECT * FROM users")
+
+# Direct service calls (no UI)
+from my_service import ServiceClient
+client = ServiceClient()
+result = client.do_something()
+```
+
+### Detection Workflow
+
+During Phase 1 (Repository Identification and Planning), you MUST:
+
+1. **Analyze each test** for UI vs non-UI patterns
+2. **Categorize tests:**
+   - UI tests → Proceed with migration
+   - Non-UI tests → Skip and document
+   - Ambiguous tests → Ask user for clarification
+
+3. **For non-UI tests, warn the user:**
+
+```text
+⚠️ NON-UI TEST DETECTED
+
+Test: test_api_endpoint_returns_users()
+File: test_api.py:45
+
+This test appears to be an API test, not a UI test:
+- Uses requests library for HTTP calls
+- No browser/UI interaction
+- No Selenium/Widgetastic usage
+
+Playwright is a UI testing framework and cannot migrate this test.
+
+Recommended alternatives:
+1. Keep in IQE (if API testing framework exists)
+2. Migrate to pytest with requests library (Python API tests)
+3. Migrate to REST-assured or similar (if Java/TypeScript API tests exist)
+4. Document for manual evaluation
+
+Should I:
+1. Skip this test and document it as non-UI
+2. Ask QE team for migration guidance
+3. Mark for separate API test migration effort
+
+Please advise.
+```
+
+4. **Document all non-UI tests** in migration summary
+
+### Migration Planning with Non-UI Tests
+
+When creating the migration plan in Phase 1:
+
+```text
+Migration Plan for test_mixed_suite.py:
+
+Tests to Convert (3 UI tests):
+✅ test_login_ui() - UI test, navigates to login page
+✅ test_dashboard_display() - UI test, verifies dashboard elements
+✅ test_navigation_menu() - UI test, clicks navigation items
+
+Tests to SKIP (2 non-UI tests):
+❌ test_api_users_endpoint() - API test, requests library
+   → Reason: Direct API call, no UI interaction
+   → Recommendation: Keep in IQE or migrate to pytest API suite
+
+❌ test_database_migration() - Backend test, database queries
+   → Reason: Direct database queries, no browser
+   → Recommendation: Keep as backend integration test
+
+Tests Requiring Clarification (1 test):
+❓ test_user_provisioning() - Ambiguous, may use both API and UI
+   → Question: Does this test verify UI state or just API responses?
+   → Decision needed before proceeding
+```
+
+### Handling Mixed Tests
+
+Some tests may use BOTH UI and API/backend interactions:
+
+```python
+def test_create_and_verify_user(application):
+    # API call to create user
+    response = requests.post('/api/users', json={'name': 'test'})
+    user_id = response.json()['id']
+
+    # UI verification
+    view = navigate_to(application.platform_ui, "UserList")
+    assert view.user_table.has_user(user_id)
+```
+
+**For mixed tests:**
+
+1. **Identify the primary test intent:**
+   - Primary UI validation → Migrate to Playwright (keep API calls as setup)
+   - Primary API validation → Skip (this is an API test with UI side-effects)
+
+2. **Ask user for clarification:**
+
+```text
+⚠️ MIXED UI/API TEST DETECTED
+
+Test: test_create_and_verify_user()
+
+This test uses both API calls AND UI verification:
+- API: Creates user via POST /api/users
+- UI: Verifies user appears in UI table
+
+Is the primary intent:
+1. Test UI displays user correctly (UI test - migrate to Playwright)
+2. Test API creates user successfully (API test - skip migration)
+
+If option 1, I can migrate it as:
+```typescript
+test('created user appears in UI', async ({ page, request }) => {
+  // Setup via API (test prerequisite)
+  const response = await request.post('/api/users', {
+    data: { name: 'test' }
+  });
+  const userId = (await response.json()).id;
+
+  // UI verification (primary test intent)
+  await page.goto('/users');
+  await expect(page.getByTestId(`user-${userId}`)).toBeVisible();
+});
+```
+
+Please advise on primary test intent.
+```
+
+### Documentation for Skipped Non-UI Tests
+
+In the migration summary, clearly document all non-UI tests:
+
+```markdown
+## Non-UI Tests (Not Migrated)
+
+The following tests were identified as non-UI tests and excluded from Playwright migration:
+
+### API Tests (3 tests)
+- `test_api_users_endpoint()` - GET /api/users validation
+- `test_api_create_user()` - POST /api/users validation
+- `test_api_delete_user()` - DELETE /api/users/:id validation
+
+**Recommendation:** Migrate to dedicated API testing suite (pytest + requests, or REST-assured)
+
+### CLI Tests (1 test)
+- `test_cli_export_command()` - Tests `iqe export` CLI command
+
+**Recommendation:** Keep in IQE or migrate to pytest subprocess-based CLI tests
+
+### Backend Integration Tests (2 tests)
+- `test_database_migration()` - Validates database schema changes
+- `test_kafka_consumer()` - Tests Kafka message consumption
+
+**Recommendation:** Keep as backend integration tests, run separately from UI tests
+```
+
+### Best Practices
+
+1. **Identify early** - Check for non-UI tests in Phase 1 before starting migration
+2. **Ask when ambiguous** - If unsure whether a test is UI or non-UI, ask the user
+3. **Document thoroughly** - List all skipped non-UI tests with reasons and recommendations
+4. **Separate concerns** - UI tests → Playwright, API tests → separate framework
+5. **Preserve setup** - API calls used for test setup/teardown are OK in Playwright tests
 
 ## CRITICAL LIMITATION: Single User Authentication Only
 
