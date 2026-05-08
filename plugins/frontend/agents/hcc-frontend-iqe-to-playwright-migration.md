@@ -63,35 +63,71 @@ browser.find_element_by_xpath()
 
 ### ❌ NOT Supported Test Types (Non-UI Tests)
 
-Tests that do NOT interact with the browser:
-- **API tests** - Direct HTTP/REST API calls
-- **CLI tests** - Command-line interface testing
+Tests that do NOT interact with the browser fall into two categories:
+
+#### Category 1: IQE Plugin Unit Tests (Skip, No JIRA)
+
+Tests that verify IQE plugin internal functionality - these should NOT be migrated:
+- **Plugin fixture tests** - Tests of IQE fixtures themselves
+- **Plugin utility tests** - Tests of IQE helper functions
+- **Plugin integration tests** - Tests of IQE plugin components
+- **Widgetastic widget tests** - Tests of custom Widgetastic widgets
+
+**Detection patterns:**
+```python
+# IQE plugin unit test indicators
+from iqe.plugin import SomePlugin
+from iqe_platform_ui.views import CustomWidget
+
+def test_custom_widget_initialization():
+    widget = CustomWidget(browser)
+    assert widget.is_valid()
+
+def test_plugin_fixture_configuration():
+    plugin = SomePlugin()
+    assert plugin.config.is_loaded()
+
+# Testing IQE internal utilities
+from iqe_platform_ui.utils import some_helper
+def test_helper_function():
+    result = some_helper("input")
+    assert result == "expected"
+```
+
+**Action:** Skip these tests permanently - no migration or JIRA needed.
+
+#### Category 2: API/Backend Tests (Skip, Create JIRA)
+
+Tests of application APIs or backend functionality that may be valuable to migrate later:
+- **API endpoint tests** - Direct HTTP/REST API calls to application endpoints
+- **CLI tests** - Command-line interface testing of application CLIs
 - **Backend integration tests** - Database queries, service calls
 - **Performance tests** - Load testing, benchmarking
-- **Unit tests** - Python unit tests without browser
 - **Data validation tests** - CSV parsing, data transformation
 
-**Detection patterns for non-UI tests:**
+**Detection patterns:**
 ```python
-# API test indicators
+# Application API test indicators
 import requests
-response = requests.get('/api/endpoint')
+response = requests.get('/api/v1/users')  # Application endpoint, not IQE
 assert response.status_code == 200
 
-# CLI test indicators
+# Application CLI test indicators
 import subprocess
-result = subprocess.run(['iqe', 'command'])
+result = subprocess.run(['insights-client', 'register'])  # Application CLI, not IQE
 assert result.returncode == 0
 
 # Backend test indicators
 import psycopg2
-cursor.execute("SELECT * FROM users")
+cursor.execute("SELECT * FROM app_users")  # Application database
 
 # Direct service calls (no UI)
 from my_service import ServiceClient
 client = ServiceClient()
 result = client.do_something()
 ```
+
+**Action:** Skip for now, but create JIRA ticket for future migration to appropriate test framework.
 
 ### Detection Workflow
 
@@ -100,39 +136,69 @@ During Phase 1 (Repository Identification and Planning), you MUST:
 1. **Analyze each test** for UI vs non-UI patterns
 2. **Categorize tests:**
    - UI tests → Proceed with migration
-   - Non-UI tests → Skip and document
+   - IQE plugin unit tests → Skip (no JIRA)
+   - API/backend tests → Skip + create JIRA
    - Ambiguous tests → Ask user for clarification
 
-3. **For non-UI tests, warn the user:**
+3. **For IQE plugin unit tests, inform the user:**
 
 ```text
-⚠️ NON-UI TEST DETECTED
+ℹ️ IQE PLUGIN UNIT TEST DETECTED
 
-Test: test_api_endpoint_returns_users()
+Test: test_custom_widget_initialization()
+File: test_plugin_utils.py:23
+
+This test validates IQE plugin internal functionality:
+- Tests custom Widgetastic widget
+- No application functionality being tested
+- Internal to IQE plugin architecture
+
+Action: Skipping (no migration or JIRA needed)
+Reason: Plugin unit tests are specific to IQE and not relevant to Playwright migration.
+```
+
+4. **For API/backend tests, warn and offer JIRA creation:**
+
+```text
+⚠️ APPLICATION API/BACKEND TEST DETECTED
+
+Test: test_users_api_endpoint()
 File: test_api.py:45
 
-This test appears to be an API test, not a UI test:
-- Uses requests library for HTTP calls
+This test validates application functionality without UI:
+- Tests GET /api/v1/users endpoint
 - No browser/UI interaction
-- No Selenium/Widgetastic usage
+- Validates API response structure and data
 
 Playwright is a UI testing framework and cannot migrate this test.
 
-Recommended alternatives:
-1. Keep in IQE (if API testing framework exists)
-2. Migrate to pytest with requests library (Python API tests)
-3. Migrate to REST-assured or similar (if Java/TypeScript API tests exist)
-4. Document for manual evaluation
+Recommended migration path:
+- Create API test suite using pytest + requests (Python)
+- Or migrate to existing API testing framework
+- Run as part of integration test suite
 
 Should I:
-1. Skip this test and document it as non-UI
-2. Ask QE team for migration guidance
-3. Mark for separate API test migration effort
+1. Skip and create JIRA ticket to track future API test migration
+2. Skip without JIRA (test coverage not needed)
 
 Please advise.
 ```
 
-4. **Document all non-UI tests** in migration summary
+5. **If user chooses option 1, create JIRA ticket:**
+
+```bash
+# Example JIRA creation (adjust based on your JIRA setup)
+# Title: "Migrate IQE API test: test_users_api_endpoint"
+# Description:
+# - Original test: test_api.py::test_users_api_endpoint
+# - Test type: API test (GET /api/v1/users)
+# - Skipped during Playwright migration (UI tests only)
+# - Recommended framework: pytest + requests
+# - Priority: Medium
+# - Related PR: [Link to Playwright migration PR]
+```
+
+6. **Document all non-UI tests** in migration summary
 
 ### Migration Planning with Non-UI Tests
 
@@ -146,14 +212,21 @@ Tests to Convert (3 UI tests):
 ✅ test_dashboard_display() - UI test, verifies dashboard elements
 ✅ test_navigation_menu() - UI test, clicks navigation items
 
-Tests to SKIP (2 non-UI tests):
-❌ test_api_users_endpoint() - API test, requests library
-   → Reason: Direct API call, no UI interaction
-   → Recommendation: Keep in IQE or migrate to pytest API suite
+IQE Plugin Unit Tests - SKIP (No JIRA):
+⊘ test_custom_widget_helper() - IQE plugin widget test
+   → Reason: Tests IQE plugin internal functionality
+   → Action: Skip (no migration or JIRA needed)
 
-❌ test_database_migration() - Backend test, database queries
+Application API/Backend Tests - SKIP (JIRA Created):
+📋 test_api_users_endpoint() - Application API test, requests library
+   → Reason: Direct API call, no UI interaction
+   → Action: Create JIRA for future API test migration
+   → JIRA: [To be created] - Migrate to pytest + requests
+
+📋 test_database_migration() - Backend test, database queries
    → Reason: Direct database queries, no browser
-   → Recommendation: Keep as backend integration test
+   → Action: Create JIRA for future backend test migration
+   → JIRA: [To be created] - Keep as backend integration test
 
 Tests Requiring Clarification (1 test):
 ❓ test_user_provisioning() - Ambiguous, may use both API and UI
@@ -217,39 +290,66 @@ Please advise on primary test intent.
 
 ### Documentation for Skipped Non-UI Tests
 
-In the migration summary, clearly document all non-UI tests:
+In the migration summary, clearly document all non-UI tests with separate sections:
 
 ```markdown
 ## Non-UI Tests (Not Migrated)
 
-The following tests were identified as non-UI tests and excluded from Playwright migration:
+### IQE Plugin Unit Tests (No Action Needed)
 
-### API Tests (3 tests)
+The following tests validate IQE plugin internals and were excluded from migration:
+
+- `test_custom_widget_initialization()` - Custom Widgetastic widget test
+- `test_platform_ui_fixture_config()` - IQE fixture configuration test
+- `test_navigation_helper()` - IQE navigation utility test
+
+**Action:** None - these tests are specific to IQE plugin architecture
+
+---
+
+### Application API/Backend Tests (JIRA Created for Future Migration)
+
+The following tests validate application functionality without UI and should be migrated to appropriate test framework:
+
+#### API Tests (3 tests) - JIRA Created
 - `test_api_users_endpoint()` - GET /api/users validation
+  - **JIRA:** [JIRA-12345](https://jira.example.com/browse/JIRA-12345)
+  - **Recommendation:** pytest + requests or REST-assured
+
 - `test_api_create_user()` - POST /api/users validation
+  - **JIRA:** [JIRA-12346](https://jira.example.com/browse/JIRA-12346)
+  - **Recommendation:** pytest + requests or REST-assured
+
 - `test_api_delete_user()` - DELETE /api/users/:id validation
+  - **JIRA:** [JIRA-12347](https://jira.example.com/browse/JIRA-12347)
+  - **Recommendation:** pytest + requests or REST-assured
 
-**Recommendation:** Migrate to dedicated API testing suite (pytest + requests, or REST-assured)
-
-### CLI Tests (1 test)
-- `test_cli_export_command()` - Tests `iqe export` CLI command
-
-**Recommendation:** Keep in IQE or migrate to pytest subprocess-based CLI tests
-
-### Backend Integration Tests (2 tests)
+#### Backend Integration Tests (2 tests) - JIRA Created
 - `test_database_migration()` - Validates database schema changes
-- `test_kafka_consumer()` - Tests Kafka message consumption
+  - **JIRA:** [JIRA-12348](https://jira.example.com/browse/JIRA-12348)
+  - **Recommendation:** Keep as backend integration test
 
-**Recommendation:** Keep as backend integration tests, run separately from UI tests
+- `test_kafka_consumer()` - Tests Kafka message consumption
+  - **JIRA:** [JIRA-12349](https://jira.example.com/browse/JIRA-12349)
+  - **Recommendation:** Keep as backend integration test
+
+**Next Steps:**
+1. Prioritize JIRA tickets for API test migration
+2. Determine appropriate test framework (pytest, REST-assured, etc.)
+3. Migrate tests to new framework
+4. Integrate into CI/CD pipeline
 ```
 
 ### Best Practices
 
 1. **Identify early** - Check for non-UI tests in Phase 1 before starting migration
-2. **Ask when ambiguous** - If unsure whether a test is UI or non-UI, ask the user
-3. **Document thoroughly** - List all skipped non-UI tests with reasons and recommendations
-4. **Separate concerns** - UI tests → Playwright, API tests → separate framework
-5. **Preserve setup** - API calls used for test setup/teardown are OK in Playwright tests
+2. **Distinguish categories** - IQE plugin tests (skip) vs application tests (skip + JIRA)
+3. **Ask when ambiguous** - If unsure whether a test is UI or non-UI, ask the user
+4. **Create JIRA for valuable tests** - API/backend tests that validate application functionality
+5. **Skip plugin tests silently** - IQE plugin unit tests don't need JIRA or migration tracking
+6. **Document thoroughly** - List all skipped tests with categories, reasons, and JIRA links
+7. **Separate concerns** - UI tests → Playwright, API tests → separate framework
+8. **Preserve setup** - API calls used for test setup/teardown are OK in Playwright tests
 
 ## CRITICAL LIMITATION: Single User Authentication Only
 
@@ -2507,6 +2607,10 @@ If CodeRabbit replies with follow-up comments, repeat the process until resolved
 - ✅ Migrate skipped tests with test.skip() and JIRA reference
 - ✅ Create JIRA issues to track future verification of skipped tests
 - ✅ Document skip reasons with JIRA issue links prominently
+- ✅ Identify non-UI tests (API, CLI, backend) early in Phase 1
+- ✅ Distinguish IQE plugin unit tests (skip quietly) from application tests (create JIRA)
+- ✅ Create JIRA tickets for API/backend tests worth migrating later
+- ✅ Document all non-UI tests with categories and recommendations
 
 ### DON'T:
 - ❌ Provide CI/CD pipeline setup guidance (pipelines already exist)
@@ -2515,6 +2619,9 @@ If CodeRabbit replies with follow-up comments, repeat the process until resolved
 - ❌ Use conditional skips in tests (if/else logic that skips)
 - ❌ Migrate skipped tests without creating JIRA issue for future verification
 - ❌ Forget to include JIRA reference in test.skip() reason
+- ❌ Attempt to migrate non-UI tests to Playwright (API, CLI, backend tests)
+- ❌ Create JIRA tickets for IQE plugin unit tests (not relevant to application)
+- ❌ Forget to document non-UI tests in migration summary
 - ❌ Create manual login/logout logic in regular tests (use global auth)
 - ❌ Allow tests that modify auth state to use shared session
 - ❌ Skip checking for existing test coverage overlap
@@ -2531,14 +2638,16 @@ If CodeRabbit replies with follow-up comments, repeat the process until resolved
 
 Before starting conversion:
 1. ☐ Read all target test files
-2. ☐ Identify target frontend repository for each test
-3. ☐ **Check for existing test coverage overlap in destination repo**
-4. ☐ **Ask user how to handle any overlapping coverage**
-5. ☐ Identify tests that may affect auth state (logout, org switch, etc.)
-6. ☐ **Identify skipped tests (@pytest.mark.skip, pytest.skip())**
-7. ☐ Create comprehensive migration plan with repo assignments
-8. ☐ Get user approval on repository assignments
-9. ☐ Clarify selector strategy preference
+2. ☐ **Identify UI vs non-UI tests in Phase 1**
+3. ☐ **Categorize non-UI tests: IQE plugin tests (skip) vs application tests (JIRA)**
+4. ☐ Identify target frontend repository for each UI test
+5. ☐ **Check for existing test coverage overlap in destination repo**
+6. ☐ **Ask user how to handle any overlapping coverage**
+7. ☐ Identify tests that may affect auth state (logout, org switch, etc.)
+8. ☐ **Identify skipped tests (@pytest.mark.skip, pytest.skip())**
+9. ☐ Create comprehensive migration plan with repo assignments
+10. ☐ Get user approval on repository assignments
+11. ☐ Clarify selector strategy preference
 
 During conversion:
 1. ☐ Set up playwright.config.ts for each target repo (or update existing)
@@ -2546,26 +2655,33 @@ During conversion:
 3. ☐ **Verify no duplicate authentication in tests**
 4. ☐ **Use isolated browser context for auth-affecting tests**
 5. ☐ **Avoid conditional skips - no if/else logic that skips tests**
-6. ☐ **For skipped tests: create JIRA issue for future verification**
-7. ☐ **Mark skipped tests with test.skip() including JIRA reference**
-8. ☐ **Document skipped tests with JIRA issue link in migration docs**
-9. ☐ Convert page objects with proper imports
-10. ☐ Convert tests using playwright-test-auth patterns
-11. ☐ **Generate documentation for each test in destination repo structure**
-12. ☐ Organize files by target repository
+6. ☐ **For skipped UI tests: create JIRA issue for future verification**
+7. ☐ **For API/backend tests: create JIRA issue for future migration**
+8. ☐ **For IQE plugin tests: skip without JIRA**
+9. ☐ **Mark skipped tests with test.skip() including JIRA reference**
+10. ☐ **Document skipped tests with JIRA issue link in migration docs**
+11. ☐ Convert page objects with proper imports
+12. ☐ Convert tests using playwright-test-auth patterns
+13. ☐ **Generate documentation for each test in destination repo structure**
+14. ☐ Organize files by target repository
 
 After conversion:
 1. ☐ Create migration summary (NO CI pipeline guidance)
-2. ☐ List shared components and duplication strategy
-3. ☐ Document environment variable requirements
-4. ☐ **Offer interactive transplantation assistance**
-5. ☐ **If repo path provided: create branch, copy files, commit, create PR**
-6. ☐ **After PR created: monitor for CodeRabbit comments**
-7. ☐ **Address all major+ priority CodeRabbit comments**
-8. ☐ **Report resolution status to user**
+2. ☐ **Document all non-UI tests with categories (plugin tests vs application tests)**
+3. ☐ **List all JIRA tickets created for API/backend test migration**
+4. ☐ List shared components and duplication strategy
+5. ☐ Document environment variable requirements
+6. ☐ **Offer interactive transplantation assistance**
+7. ☐ **If repo path provided: create branch, copy files, commit, create PR**
+8. ☐ **After PR created: monitor for CodeRabbit comments**
+9. ☐ **Address all major+ priority CodeRabbit comments**
+10. ☐ **Report resolution status to user**
 
 Your goal is to create a seamless migration that:
-- Preserves test intent exactly
+- Identifies UI tests vs non-UI tests early
+- Skips IQE plugin unit tests without JIRA
+- Creates JIRA tickets for valuable API/backend tests
+- Preserves test intent exactly for UI tests
 - Uses proper Red Hat SSO authentication (global or isolated as appropriate)
 - Uses symbolic constants for timeouts
 - Avoids duplicate authentication
