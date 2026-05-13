@@ -15,7 +15,12 @@
         "email": "frontend-team@hcc.com"
       },
       "category": "development",
-      "keywords": ["frontend", "react", "typescript", "testing"],
+      "keywords": [
+        "frontend",
+        "react",
+        "typescript",
+        "testing"
+      ],
       "homepage": "https://github.com/RedHatInsights/platform-frontend-ai-toolkit"
     },
     {
@@ -28,20 +33,30 @@
         "email": "frontend-team@hcc.com"
       },
       "category": "infrastructure",
-      "keywords": ["infrastructure", "devops", "konflux", "database"],
+      "keywords": [
+        "infrastructure",
+        "devops",
+        "konflux",
+        "database"
+      ],
       "homepage": "https://github.com/RedHatInsights/platform-frontend-ai-toolkit"
     },
     {
       "name": "management-plugin",
       "source": "./plugins/management",
       "description": "Claude Code plugin for project management and reporting workflows - JIRA, weekly reports, analytics investigation",
-      "version": "1.0.0",
+      "version": "1.1.0",
       "author": {
         "name": "HCC Frontend Team",
         "email": "frontend-team@hcc.com"
       },
       "category": "management",
-      "keywords": ["management", "jira", "reporting", "analytics"],
+      "keywords": [
+        "management",
+        "jira",
+        "reporting",
+        "analytics"
+      ],
       "homepage": "https://github.com/RedHatInsights/platform-frontend-ai-toolkit"
     }
   ]
