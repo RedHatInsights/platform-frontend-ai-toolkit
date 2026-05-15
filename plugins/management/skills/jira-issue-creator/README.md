@@ -4,20 +4,22 @@ Python-based skill for creating validated RHCLOUD Jira issues with automatic fie
 
 ## How It Works
 
-1. Developer provides shorthand request: "Fix CVE in chrome auth for framework team"
-2. Claude extracts summary, description, assignee from prompt
-3. Claude shows 4 dropdowns with recommended defaults: team, activity type, issue type, prefix
-4. User confirms/changes selections
-5. Python validates confirmed selections (team UUIDs, labels, security level)
-6. Claude creates ticket without description
-7. Claude generates enriched description from shorthand + codebase context
-8. Claude shows enriched description for approval
-9. After approval, Claude updates ticket with full description
+1. User invokes skill: `/jira-issue-creator Fix CVE in chrome. Assign to me`
+2. Claude parses invocation message for summary, description, assignee hint
+3. Claude resolves assignee hint if present ("me" → git user.email, "bot" → bot email, name → lookup)
+4. Claude shows assignee question (confirm resolved assignee, or select unassigned/bot/other)
+5. Claude shows 4 dropdowns with recommended defaults: team, activity type, issue type, prefix
+6. Python validates confirmed selections (team UUIDs, labels, security level, assignee)
+7. Claude creates ticket without description
+8. Claude generates enriched description from shorthand + codebase context
+9. Claude shows enriched description for approval
+10. After approval, Claude updates ticket with full description
 
 **Interactive selection:**
-- User explicitly chooses team, activity type, issue type, prefix via dropdowns
-- Recommended option inferred from context (CI → Quality, CVE → Security, cwd → prefix)
-- No field guessing — user confirms before creation
+- Assignee asked separately (Step 4) with resolved value pre-filled
+- Team, activity, type, prefix asked together (Step 5)
+- Recommended options inferred from context (CI → Quality, CVE → Security, cwd → prefix)
+- User confirms/changes all selections before creation
 
 **Prefix behavior:**
 - Auto-detected from cwd basename (e.g., `/path/to/javascript-clients` → `[javascript-clients]`)
@@ -121,21 +123,25 @@ Restart Claude Code, reinstall plugin:
 
 ## Usage from Skill
 
-The skill invokes the script for validation:
+The skill invokes the script for validation. Example for user-assigned ticket:
 
 ```bash
 python3 claude/skills/jira-issue-creator/jira_fields.py \
-  --summary "..." \
+  --summary "Fix auth bug" \
   --team "Console - Framework" \
   --issue-type "Story" \
   --description "..." \
-  --labels "repo:insights-chrome" \
-  --assignee-type bot
+  --assignee-type "user" \
+  --assignee "chmulder@redhat.com" \
+  --prefix "chrome"
 ```
+
+For bot tickets, use `--assignee-type bot` and `--labels "repo:chrome"` (no --assignee).
+For unassigned, use `--assignee-type unassigned` (no --assignee, no --labels).
 
 **Note:** Description used for activity type/security detection only. NOT included in output JSON.
 
-Output is validated JSON for `jira_create_issue` MCP call (without description field).
+Output is validated JSON for `jira_create_issue` MCP call (assignee included, description omitted).
 
 ## Validation Rules
 
@@ -167,13 +173,16 @@ Falls back to keyword detection if Claude doesn't provide type.
 
 ## Assignment Types
 
-| User Request | assignee_type | Label Behavior | MCP Calls |
-|--------------|---------------|----------------|-----------|
-| "assign to bot" | bot | Add hcc-ai-framework + repo:* labels | `jira_get_user_profile` (bot), `jira_create_issue` |
-| "assign to <user>" | unassigned | NO labels | `jira_get_user_profile` (user), `jira_create_issue` |
+| Assignee Selection | assignee_type | Label Behavior | MCP Calls |
+|-------------------|---------------|----------------|-----------|
+| Bot | bot | Add hcc-ai-framework + repo:* labels | `jira_get_user_profile` (bot), `jira_create_issue` |
+| Specific user (from hint or Other field) | user | NO labels | `jira_get_user_profile` (if needed), `jira_create_issue` |
 | Unassigned | unassigned | NO labels | `jira_create_issue` only |
 
-User lookup accepts: email, username, display name, or account ID.
+**Assignee resolution:**
+- Invocation hint: "assign to me" → git user.email, "assign to bot" → bot lookup, "assign to <name>" → user lookup
+- User identifiers: email, username, display name, account ID, "me"
+- Resolved value shown in Step 4 for confirmation
 
 ## Validation Errors
 
@@ -207,8 +216,8 @@ View: https://redhat.atlassian.net/browse/RHCLOUD-XXXX
 
 ## Files
 
-- `SKILL.md` — Skill definition and workflow (115 lines, uppercase required)
-- `jira_fields.py` — Validation script (~310 lines)
+- `SKILL.md` — Skill definition and workflow (uppercase required)
+- `jira_fields.py` — Validation script
 - `requirements.txt` — Test dependencies
-- `tests/test_jira_fields.py` — 35 tests (all passing)
+- `tests/test_jira_fields.py` — 35 tests (all passing, runs in CI)
 - `README.md` — Documentation, activity types, validation rules
