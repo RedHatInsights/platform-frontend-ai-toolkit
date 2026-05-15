@@ -200,7 +200,7 @@ Completes migration with:
 **⚠️ Limitation:** Only supports tests using a single user account. Multi-user tests require manual conversion or splitting.
 
 **Quick Start (Sequential Workflow):**
-```
+```bash
 # Step 1: Analyze
 Use hcc-frontend-iqe-test-analyzer to analyze test_login.py from /path/to/iqe-platform-ui-plugin
 
@@ -316,7 +316,7 @@ Add the following to your Claude Code MCP settings:
 
 Simply ask Claude Code to generate a report:
 
-```
+```text
 "Show me what Platform Framework accomplished this week"
 ```
 
@@ -511,7 +511,7 @@ This document tracks:
 
 ## Repository Structure
 
-```
+```text
 platform-frontend-ai-toolkit/
 ├── .claude-plugin/
 │   └── marketplace.json              # Marketplace config (lists all plugins)
