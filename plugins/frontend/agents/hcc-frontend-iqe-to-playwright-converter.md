@@ -443,8 +443,19 @@ def skip_non_stage(application):
 ```
 
 ```typescript
-// Playwright
-test.skip(process.env.PLAYWRIGHT_BASE_URL?.includes('prod'), 'Skip in production');
+// Playwright - Use test annotations or environment-based test organization
+// Option 1: Tag tests and use grep to filter by environment
+test('stage-only feature', async ({ page }) => {
+  // Test logic - run this test only in stage via: npx playwright test --grep @stage
+});
+
+// Option 2: If test must be skipped unconditionally, use test.skip()
+test.skip('feature only available in stage', async ({ page }) => {
+  // Test logic - finalizer will create JIRA to track enabling this
+});
+
+// DON'T: Use conditional skips inside tests
+// test.skip(process.env.ENV === 'prod', 'Skip in production'); // AVOID
 ```
 
 #### C. Convert Page Objects/Views
