@@ -223,7 +223,7 @@ const TIMEOUTS = {
   SLOW_OPERATION: 120000,
 } as const;
 
-test.describe('Test suite name', async () => {
+test.describe('Test suite name', () => {
     test.beforeEach(async ({page}): Promise<void> => {
         // Disable cookie consent prompt
         await disableCookiePrompt(page);
