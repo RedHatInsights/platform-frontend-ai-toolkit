@@ -428,7 +428,7 @@ Each repository needs:
 The following tests were migrated but marked as skipped. JIRA issues have been created for future verification:
 
 ### insights-chrome (2 skipped tests)
-- test_new_feature - [JIRA-12345](https://jira.example.com/browse/JIRA-12345)
+- test_new_feature - [RHCLOUD-12345](https://redhat.atlassian.net/browse/RHCLOUD-12345)
   - Original reason: "Feature not implemented"
   - Needs verification that feature is now available
 
