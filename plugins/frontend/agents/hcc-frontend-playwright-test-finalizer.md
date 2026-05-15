@@ -490,7 +490,7 @@ For each major+ comment:
 
 4. **Reply to comment:**
    ```bash
-   gh pr comment <pr-number> --body "Fixed Fixed in <commit-sha>
+   gh pr comment <pr-number> --body "Fixed in <commit-sha>
 
    <Brief explanation of the fix>
 
