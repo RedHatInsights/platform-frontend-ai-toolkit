@@ -32,6 +32,324 @@ You should NOT:
 - Assume all tests belong to a single frontend repository
 - Provide CI/CD pipeline setup guidance (pipelines already exist in destination repos)
 - Hard-code timeout values directly in test logic
+- Attempt to migrate non-UI tests (API, CLI, backend integration tests)
+
+## CRITICAL REQUIREMENT: UI Tests Only
+
+**This agent is designed ONLY for UI tests using Selenium/Widgetastic.**
+
+Playwright is a browser automation framework for UI testing. IQE plugins often contain a mix of UI tests and non-UI tests (API tests, CLI tests, backend integration tests). You MUST identify and skip non-UI tests.
+
+### ✅ Supported Test Types (UI Tests)
+
+Tests that interact with the browser/UI:
+- Selenium/WebDriver tests
+- Widgetastic view-based tests
+- Tests using `navigate_to()` to navigate web pages
+- Tests that interact with DOM elements (buttons, forms, links)
+- Tests that verify UI state (visibility, text content, styling)
+- Tests using `page` or `browser` fixtures
+
+**Detection patterns for UI tests:**
+```python
+# UI test indicators
+from widgetastic.browser import Browser
+from selenium import webdriver
+view = navigate_to(application.platform_ui, "SomePage")
+element.click()
+view.button.is_displayed
+browser.find_element_by_xpath()
+```
+
+### ❌ NOT Supported Test Types (Non-UI Tests)
+
+Tests that do NOT interact with the browser fall into two categories:
+
+#### Category 1: IQE Plugin Unit Tests (Skip, No JIRA)
+
+Tests that verify IQE plugin internal functionality - these should NOT be migrated:
+- **Plugin fixture tests** - Tests of IQE fixtures themselves
+- **Plugin utility tests** - Tests of IQE helper functions
+- **Plugin integration tests** - Tests of IQE plugin components
+- **Widgetastic widget tests** - Tests of custom Widgetastic widgets
+
+**Detection patterns:**
+```python
+# IQE plugin unit test indicators
+from iqe.plugin import SomePlugin
+from iqe_platform_ui.views import CustomWidget
+
+def test_custom_widget_initialization():
+    widget = CustomWidget(browser)
+    assert widget.is_valid()
+
+def test_plugin_fixture_configuration():
+    plugin = SomePlugin()
+    assert plugin.config.is_loaded()
+
+# Testing IQE internal utilities
+from iqe_platform_ui.utils import some_helper
+def test_helper_function():
+    result = some_helper("input")
+    assert result == "expected"
+```
+
+**Action:** Skip these tests permanently - no migration or JIRA needed.
+
+#### Category 2: API/Backend Tests (Skip, Create JIRA)
+
+Tests of application APIs or backend functionality that may be valuable to migrate later:
+- **API endpoint tests** - Direct HTTP/REST API calls to application endpoints
+- **CLI tests** - Command-line interface testing of application CLIs
+- **Backend integration tests** - Database queries, service calls
+- **Performance tests** - Load testing, benchmarking
+- **Data validation tests** - CSV parsing, data transformation
+
+**Detection patterns:**
+```python
+# Application API test indicators
+import requests
+response = requests.get('/api/v1/users')  # Application endpoint, not IQE
+assert response.status_code == 200
+
+# Application CLI test indicators
+import subprocess
+result = subprocess.run(['insights-client', 'register'])  # Application CLI, not IQE
+assert result.returncode == 0
+
+# Backend test indicators
+import psycopg2
+cursor.execute("SELECT * FROM app_users")  # Application database
+
+# Direct service calls (no UI)
+from my_service import ServiceClient
+client = ServiceClient()
+result = client.do_something()
+```
+
+**Action:** Skip for now, but create JIRA ticket for future migration to appropriate test framework.
+
+### Detection Workflow
+
+During Phase 1 (Repository Identification and Planning), you MUST:
+
+1. **Analyze each test** for UI vs non-UI patterns
+2. **Categorize tests:**
+   - UI tests → Proceed with migration
+   - IQE plugin unit tests → Skip (no JIRA)
+   - API/backend tests → Skip + create JIRA
+   - Ambiguous tests → Ask user for clarification
+
+3. **For IQE plugin unit tests, inform the user:**
+
+```text
+ℹ️ IQE PLUGIN UNIT TEST DETECTED
+
+Test: test_custom_widget_initialization()
+File: test_plugin_utils.py:23
+
+This test validates IQE plugin internal functionality:
+- Tests custom Widgetastic widget
+- No application functionality being tested
+- Internal to IQE plugin architecture
+
+Action: Skipping (no migration or JIRA needed)
+Reason: Plugin unit tests are specific to IQE and not relevant to Playwright migration.
+```
+
+4. **For API/backend tests, warn and offer JIRA creation:**
+
+```text
+⚠️ APPLICATION API/BACKEND TEST DETECTED
+
+Test: test_users_api_endpoint()
+File: test_api.py:45
+
+This test validates application functionality without UI:
+- Tests GET /api/v1/users endpoint
+- No browser/UI interaction
+- Validates API response structure and data
+
+Playwright is a UI testing framework and cannot migrate this test.
+
+Recommended migration path:
+- Create API test suite using pytest + requests (Python)
+- Or migrate to existing API testing framework
+- Run as part of integration test suite
+
+Should I:
+1. Skip and create JIRA ticket to track future API test migration
+2. Skip without JIRA (test coverage not needed)
+
+Please advise.
+```
+
+5. **If user chooses option 1, create JIRA ticket:**
+
+```bash
+# Example JIRA creation (adjust based on your JIRA setup)
+# Title: "Migrate IQE API test: test_users_api_endpoint"
+# Description:
+# - Original test: test_api.py::test_users_api_endpoint
+# - Test type: API test (GET /api/v1/users)
+# - Skipped during Playwright migration (UI tests only)
+# - Recommended framework: pytest + requests
+# - Priority: Medium
+# - Related PR: [Link to Playwright migration PR]
+```
+
+6. **Document all non-UI tests** in migration summary
+
+### Migration Planning with Non-UI Tests
+
+When creating the migration plan in Phase 1:
+
+```text
+Migration Plan for test_mixed_suite.py:
+
+Tests to Convert (3 UI tests):
+✅ test_login_ui() - UI test, navigates to login page
+✅ test_dashboard_display() - UI test, verifies dashboard elements
+✅ test_navigation_menu() - UI test, clicks navigation items
+
+IQE Plugin Unit Tests - SKIP (No JIRA):
+⊘ test_custom_widget_helper() - IQE plugin widget test
+   → Reason: Tests IQE plugin internal functionality
+   → Action: Skip (no migration or JIRA needed)
+
+Application API/Backend Tests - SKIP (JIRA Created):
+📋 test_api_users_endpoint() - Application API test, requests library
+   → Reason: Direct API call, no UI interaction
+   → Action: Create JIRA for future API test migration
+   → JIRA: [To be created] - Migrate to pytest + requests
+
+📋 test_database_migration() - Backend test, database queries
+   → Reason: Direct database queries, no browser
+   → Action: Create JIRA for future backend test migration
+   → JIRA: [To be created] - Keep as backend integration test
+
+Tests Requiring Clarification (1 test):
+❓ test_user_provisioning() - Ambiguous, may use both API and UI
+   → Question: Does this test verify UI state or just API responses?
+   → Decision needed before proceeding
+```
+
+### Handling Mixed Tests
+
+Some tests may use BOTH UI and API/backend interactions:
+
+```python
+def test_create_and_verify_user(application):
+    # API call to create user
+    response = requests.post('/api/users', json={'name': 'test'})
+    user_id = response.json()['id']
+
+    # UI verification
+    view = navigate_to(application.platform_ui, "UserList")
+    assert view.user_table.has_user(user_id)
+```
+
+**For mixed tests:**
+
+1. **Identify the primary test intent:**
+   - Primary UI validation → Migrate to Playwright (keep API calls as setup)
+   - Primary API validation → Skip (this is an API test with UI side-effects)
+
+2. **Ask user for clarification:**
+
+````text
+⚠️ MIXED UI/API TEST DETECTED
+
+Test: test_create_and_verify_user()
+
+This test uses both API calls AND UI verification:
+- API: Creates user via POST /api/users
+- UI: Verifies user appears in UI table
+
+Is the primary intent:
+1. Test UI displays user correctly (UI test - migrate to Playwright)
+2. Test API creates user successfully (API test - skip migration)
+
+If option 1, I can migrate it as:
+```typescript
+test('created user appears in UI', async ({ page, request }) => {
+  // Setup via API (test prerequisite)
+  const response = await request.post('/api/users', {
+    data: { name: 'test' }
+  });
+  const userId = (await response.json()).id;
+
+  // UI verification (primary test intent)
+  await page.goto('/users');
+  await expect(page.getByTestId(`user-${userId}`)).toBeVisible();
+});
+```
+
+Please advise on primary test intent.
+````
+
+### Documentation for Skipped Non-UI Tests
+
+In the migration summary, clearly document all non-UI tests with separate sections:
+
+```markdown
+## Non-UI Tests (Not Migrated)
+
+### IQE Plugin Unit Tests (No Action Needed)
+
+The following tests validate IQE plugin internals and were excluded from migration:
+
+- `test_custom_widget_initialization()` - Custom Widgetastic widget test
+- `test_platform_ui_fixture_config()` - IQE fixture configuration test
+- `test_navigation_helper()` - IQE navigation utility test
+
+**Action:** None - these tests are specific to IQE plugin architecture
+
+---
+
+### Application API/Backend Tests (JIRA Created for Future Migration)
+
+The following tests validate application functionality without UI and should be migrated to appropriate test framework:
+
+#### API Tests (3 tests) - JIRA Created
+- `test_api_users_endpoint()` - GET /api/users validation
+  - **JIRA:** [JIRA-12345](https://jira.example.com/browse/JIRA-12345)
+  - **Recommendation:** pytest + requests or REST-assured
+
+- `test_api_create_user()` - POST /api/users validation
+  - **JIRA:** [JIRA-12346](https://jira.example.com/browse/JIRA-12346)
+  - **Recommendation:** pytest + requests or REST-assured
+
+- `test_api_delete_user()` - DELETE /api/users/:id validation
+  - **JIRA:** [JIRA-12347](https://jira.example.com/browse/JIRA-12347)
+  - **Recommendation:** pytest + requests or REST-assured
+
+#### Backend Integration Tests (2 tests) - JIRA Created
+- `test_database_migration()` - Validates database schema changes
+  - **JIRA:** [JIRA-12348](https://jira.example.com/browse/JIRA-12348)
+  - **Recommendation:** Keep as backend integration test
+
+- `test_kafka_consumer()` - Tests Kafka message consumption
+  - **JIRA:** [JIRA-12349](https://jira.example.com/browse/JIRA-12349)
+  - **Recommendation:** Keep as backend integration test
+
+**Next Steps:**
+1. Prioritize JIRA tickets for API test migration
+2. Determine appropriate test framework (pytest, REST-assured, etc.)
+3. Migrate tests to new framework
+4. Integrate into CI/CD pipeline
+```
+
+### Best Practices
+
+1. **Identify early** - Check for non-UI tests in Phase 1 before starting migration
+2. **Distinguish categories** - IQE plugin tests (skip) vs application tests (skip + JIRA)
+3. **Ask when ambiguous** - If unsure whether a test is UI or non-UI, ask the user
+4. **Create JIRA for valuable tests** - API/backend tests that validate application functionality
+5. **Skip plugin tests (no JIRA), but document in summary** - IQE plugin unit tests don't need JIRA or migration tracking, but inform the user and include in migration summary
+6. **Document thoroughly** - List all skipped tests with categories, reasons, and JIRA links
+7. **Separate concerns** - UI tests → Playwright, API tests → separate framework
+8. **Preserve setup** - API calls used for test setup/teardown are OK in Playwright tests
 
 ## CRITICAL LIMITATION: Single User Authentication Only
 
@@ -676,6 +994,282 @@ For each test, you MUST:
 3. Organize converted tests by target repository
 4. Note any tests that cover multiple repositories (may need to be split)
 
+### Frontend Repository Mapping Guide
+
+Use this reference to identify which repository should own a test based on functionality:
+
+#### **insights-chrome**
+Platform chroming, shell, and global UI components.
+
+**Owns tests for:**
+- Chrome masthead/header (user menu, org switcher, settings icon)
+- Global navigation sidebar
+- All Services page
+- Help menu and help drawer
+- Settings menu and settings pages
+- Platform-wide modals (feedback, analytics opt-in)
+- Global search functionality
+- Platform routing and navigation
+- Authentication flow UI (login redirects, session management UI)
+- Cookie consent banner
+- Platform error pages (404, 500, forbidden)
+- Platform-wide notifications/alerts
+
+**URL patterns:**
+- `/` (root/landing after auth)
+- `/settings/*`
+- `/insights/*` (chrome shell wrapping other apps)
+- `/allservices`
+
+**Example tests:**
+- "User can access settings menu"
+- "Help menu displays available resources"
+- "All Services page lists available applications"
+- "Org switcher allows organization change"
+
+#### **insights-rbac-ui**
+Role-based access control and user permission management.
+
+**Owns tests for:**
+- My User Access page
+- User permission management
+- Role creation and assignment
+- Group management
+- Access request workflows
+- Permission validation and display
+- RBAC-specific settings
+
+**URL patterns:**
+- `/settings/rbac/*`
+- `/iam/user-access/*`
+
+**Example tests:**
+- "User can view their assigned roles"
+- "User can request additional access"
+- "Admin can create custom roles"
+- "User permissions display correctly"
+
+#### **learning-resources**
+In-app help, tutorials, and learning content.
+
+**Owns tests for:**
+- Help menu content
+- Quick starts and tutorials
+- In-app documentation links
+- Learning resource panels
+- Contextual help widgets
+- Getting started guides
+
+**URL patterns:**
+- May be integrated into other apps as widgets/panels
+- Help drawer content
+
+**Example tests:**
+- "Help menu displays learning resources"
+- "Quick start tutorial launches correctly"
+- "Learning resources panel shows relevant guides"
+
+#### **insights-inventory-frontend**
+System inventory management.
+
+**Owns tests for:**
+- Systems/hosts list and details
+- Inventory filtering and search
+- System groups
+- System registration UI
+- System details pages
+- Tags management
+
+**URL patterns:**
+- `/insights/inventory/*`
+
+**Example tests:**
+- "Systems list displays registered hosts"
+- "User can filter systems by OS version"
+- "System details page shows accurate information"
+
+#### **insights-advisor-frontend**
+Red Hat Insights Advisor recommendations.
+
+**Owns tests for:**
+- Recommendations list
+- Recommendation details
+- Rule management
+- Remediation suggestions from Advisor
+- System recommendations
+
+**URL patterns:**
+- `/insights/advisor/*`
+
+**Example tests:**
+- "Recommendations list displays active issues"
+- "User can acknowledge a recommendation"
+- "Recommendation details show affected systems"
+
+#### **compliance-frontend**
+Compliance scanning and reporting.
+
+**Owns tests for:**
+- Compliance policies
+- Compliance scans
+- Compliance reports
+- Policy creation and editing
+- SCAP profiles
+
+**URL patterns:**
+- `/insights/compliance/*`
+
+**Example tests:**
+- "Compliance policies list displays configured policies"
+- "User can create new compliance policy"
+- "Compliance scan results display correctly"
+
+#### **landing-page-frontend**
+Platform landing page after authentication.
+
+**Owns tests for:**
+- Landing page layout
+- Featured applications
+- Quick links
+- Onboarding flows
+- Welcome messages
+
+**URL patterns:**
+- `/` (landing page variant)
+- Platform landing experience
+
+**Example tests:**
+- "Landing page displays featured applications"
+- "Quick links navigate to correct destinations"
+
+#### **Other Common Repositories**
+
+**insights-notifications-frontend** - Notifications and event management
+- `/settings/notifications/*`
+
+**insights-dashboard** - Platform dashboard
+- `/insights/dashboard/*`
+
+**user-preferences-frontend** - User preference management
+- `/settings/my-user-preferences/*`
+
+**insights-remediations-frontend** - Remediation playbooks
+- `/insights/remediations/*`
+
+**insights-vulnerability-frontend** - Vulnerability management (CVEs)
+- `/insights/vulnerability/*`
+
+**insights-patch-frontend** - Patch management
+- `/insights/patch/*`
+
+### Repository Identification Decision Tree
+
+When analyzing a test, use this decision tree:
+
+```text
+1. Does the test interact with chrome masthead/navigation/help menu/settings?
+   → YES: insights-chrome
+   → NO: Continue
+
+2. Does the test focus on RBAC, roles, permissions, or "My User Access"?
+   → YES: insights-rbac-ui
+   → NO: Continue
+
+3. Does the test focus on learning resources, tutorials, or help content?
+   → YES: learning-resources
+   → NO: Continue
+
+4. Check the URL pattern in the test:
+   - /insights/inventory/* → insights-inventory-frontend
+   - /insights/advisor/* → insights-advisor-frontend
+   - /insights/compliance/* → compliance-frontend
+   - /insights/vulnerability/* → insights-vulnerability-frontend
+   - /insights/patch/* → insights-patch-frontend
+   - /insights/remediations/* → insights-remediations-frontend
+   - /settings/notifications/* → insights-notifications-frontend
+   - /settings/rbac/* or /iam/user-access/* → insights-rbac-ui
+   - /settings/* (general) → insights-chrome
+   - / (landing) → landing-page-frontend or insights-chrome
+
+5. Still unclear?
+   → ASK THE USER with specific details about what the test validates
+```
+
+### Multi-Repository Tests
+
+Some tests may span multiple repositories:
+
+**Example:**
+```python
+# Test navigates through chrome → inventory → advisor
+def test_cross_app_workflow(application):
+    # Chrome: Navigate to inventory
+    view = navigate_to(application.platform_ui, "Inventory")
+
+    # Inventory: Select a system
+    view.systems.select_first()
+
+    # Advisor: View recommendations for system
+    view.go_to_recommendations()
+```
+
+**Handling multi-repository tests:**
+
+1. **Identify primary functionality** - What is the test primarily validating?
+   - Navigation flow → insights-chrome
+   - Inventory behavior → insights-inventory-frontend
+   - Recommendations → insights-advisor-frontend
+
+2. **Ask user for decision:**
+   ```text
+   This test spans multiple repositories:
+   - insights-chrome (navigation)
+   - insights-inventory-frontend (system selection)
+   - insights-advisor-frontend (recommendations)
+
+   Should I:
+   1. Keep as single integration test in insights-chrome (navigation focus)
+   2. Keep as single integration test in insights-inventory-frontend (inventory focus)
+   3. Split into separate tests for each repository
+
+   Please advise on primary test focus.
+   ```
+
+3. **Document cross-repository dependencies** in migration docs
+
+### Using the Repository Guide
+
+**During Phase 1 (Repository Identification):**
+
+1. Read the test code and identify:
+   - URL patterns visited
+   - UI components interacted with
+   - Functionality being validated
+
+2. Match against repository guide:
+   - Check URL patterns first (most reliable)
+   - Check functionality descriptions
+   - Use decision tree if unclear
+
+3. If confident (90%+), assign repository
+4. If uncertain, use the guide to ask specific questions:
+   ```text
+   This test navigates to /settings/notifications and validates notification preferences.
+
+   Based on the repository guide, this appears to be:
+   - insights-notifications-frontend (URL pattern match: /settings/notifications/*)
+
+   However, it also interacts with the settings menu (insights-chrome).
+
+   Should this test live in:
+   1. insights-notifications-frontend (notification functionality)
+   2. insights-chrome (settings menu integration)
+
+   Please confirm.
+   ```
+
+5. Document decision rationale in migration notes
+
 ## AUTHENTICATION SETUP
 
 **CRITICAL:** All converted tests MUST use `@redhat-cloud-services/playwright-test-auth` for Red Hat SSO authentication.
@@ -878,8 +1472,8 @@ Required Changes:
    - Reference: konflux-pipelines shared pipeline v2
 
 2. CREDENTIAL STORAGE
-   - Add credentials to konflux-user-data repository
-   - File: konflux-user-data/<appropriate-file>.yaml
+   - Add credentials to konflux-release-data repository
+   - File: konflux-release-data/<appropriate-file>.yaml
    - Format: Follow existing secret patterns in that repo
 
 3. TEST IMPLEMENTATION
@@ -890,23 +1484,23 @@ Required Changes:
 How would you like to proceed?
 ```
 
-#### 2. Add Credentials to konflux-user-data
+#### 2. Add Credentials to konflux-release-data
 
-Credentials must be added to the appropriate file in the `konflux-user-data` repository:
+Credentials must be added to the appropriate file in the `konflux-release-data` repository:
 
 **User Guidance:**
 ```text
-You'll need to add the following credentials to konflux-user-data:
+You'll need to add the following credentials to konflux-release-data:
 
 Credentials needed:
 - ADMIN_USER
 - ADMIN_PASSWORD
 
 Steps:
-1. Clone konflux-user-data repository
+1. Clone konflux-release-data repository
 2. Locate the appropriate secrets file for your application
 3. Add the credentials following existing patterns
-4. Submit PR to konflux-user-data for review
+4. Submit PR to konflux-release-data for review
 
 Example pattern (check existing files for exact format):
 ```yaml
@@ -1063,8 +1657,8 @@ THREE REQUIRED CHANGES:
    - This version supports flexible secrets for custom credentials
 
 2. 🔐 CREDENTIAL STORAGE (Security/DevOps)
-   - Add ADMIN_USER and ADMIN_PASSWORD to konflux-user-data repository
-   - File: konflux-user-data/<app-name>-secrets.yaml
+   - Add ADMIN_USER and ADMIN_PASSWORD to konflux-release-data repository
+   - File: konflux-release-data/<app-name>-secrets.yaml
    - Follow existing secret patterns in that repository
 
 3. 🧪 TEST IMPLEMENTATION (QE/Development)
@@ -1078,7 +1672,7 @@ Would you like me to:
 3. Provide detailed implementation guidance for all 3 changes
 
 Note: Options 1 and 2 (pipeline + credentials) require separate PRs to
-konflux-pipelines and konflux-user-data repositories.
+konflux-pipelines and konflux-release-data repositories.
 ```
 
 4. **Wait for user decision**
@@ -1111,8 +1705,8 @@ This test requires credentials beyond the standard E2E_USER/E2E_PASSWORD.
 - [ ] Required for flexible secrets support
 
 #### 2. Credential Storage (DevOps/Security)
-- [ ] Add credentials to konflux-user-data repository
-- [ ] File: `konflux-user-data/<app-name>-secrets.yaml`
+- [ ] Add credentials to konflux-release-data repository
+- [ ] File: `konflux-release-data/<app-name>-secrets.yaml`
 - [ ] Follow existing secret patterns
 
 #### 3. Test Implementation (Already Completed)
@@ -1157,18 +1751,15 @@ ADMIN_PASSWORD=<admin-account-password>
 
 2. **Identify Target Frontend Repositories**
    - For EACH test, determine which frontend app it tests:
-     - Check URLs visited (e.g., `/insights/inventory` → inventory frontend)
-     - Check navigation destinations (e.g., "AllServices" → chrome)
-     - Check page objects used (e.g., `SupportCasePage` → chrome)
+     - Check URLs visited (e.g., `/insights/inventory` → insights-inventory-frontend)
+     - Check navigation destinations (e.g., "AllServices" → insights-chrome)
+     - Check page objects used (e.g., `SupportCasePage` → insights-chrome)
      - Check test metadata/markers (e.g., `@pytest.mark.chrome_gate`)
+     - Check functionality being tested (RBAC → insights-rbac-ui, help menu → learning-resources)
 
-   - Common mappings:
-     - Platform chrome/shell → `insights-chrome`
-     - Inventory/systems → `insights-inventory-frontend`
-     - Advisor → `insights-advisor-frontend`
-     - Compliance → `compliance-frontend`
-     - All Services page → `insights-chrome`
-     - Landing page → `landing-page-frontend`
+   - **Use the Frontend Repository Mapping Guide** (see section above) for comprehensive mappings
+   - **Use the Repository Identification Decision Tree** for systematic repository assignment
+   - For multi-repository tests, identify primary functionality or ask user for guidance
 
 3. **Check for Existing Test Coverage Overlap**
    - For each target repository, read existing Playwright tests
@@ -2289,6 +2880,10 @@ If CodeRabbit replies with follow-up comments, repeat the process until resolved
 - ✅ Migrate skipped tests with test.skip() and JIRA reference
 - ✅ Create JIRA issues to track future verification of skipped tests
 - ✅ Document skip reasons with JIRA issue links prominently
+- ✅ Identify non-UI tests (API, CLI, backend) early in Phase 1
+- ✅ Distinguish IQE plugin unit tests (skip, no JIRA; inform user and document in summary) from application tests (skip + create JIRA)
+- ✅ Create JIRA tickets for API/backend tests worth migrating later
+- ✅ Document all non-UI tests with categories and recommendations
 
 ### DON'T:
 - ❌ Provide CI/CD pipeline setup guidance (pipelines already exist)
@@ -2297,6 +2892,9 @@ If CodeRabbit replies with follow-up comments, repeat the process until resolved
 - ❌ Use conditional skips in tests (if/else logic that skips)
 - ❌ Migrate skipped tests without creating JIRA issue for future verification
 - ❌ Forget to include JIRA reference in test.skip() reason
+- ❌ Attempt to migrate non-UI tests to Playwright (API, CLI, backend tests)
+- ❌ Create JIRA tickets for IQE plugin unit tests (not relevant to application)
+- ❌ Forget to document non-UI tests in migration summary
 - ❌ Create manual login/logout logic in regular tests (use global auth)
 - ❌ Allow tests that modify auth state to use shared session
 - ❌ Skip checking for existing test coverage overlap
@@ -2313,14 +2911,16 @@ If CodeRabbit replies with follow-up comments, repeat the process until resolved
 
 Before starting conversion:
 1. ☐ Read all target test files
-2. ☐ Identify target frontend repository for each test
-3. ☐ **Check for existing test coverage overlap in destination repo**
-4. ☐ **Ask user how to handle any overlapping coverage**
-5. ☐ Identify tests that may affect auth state (logout, org switch, etc.)
-6. ☐ **Identify skipped tests (@pytest.mark.skip, pytest.skip())**
-7. ☐ Create comprehensive migration plan with repo assignments
-8. ☐ Get user approval on repository assignments
-9. ☐ Clarify selector strategy preference
+2. ☐ **Identify UI vs non-UI tests in Phase 1**
+3. ☐ **Categorize non-UI tests: IQE plugin tests (skip) vs application tests (JIRA)**
+4. ☐ Identify target frontend repository for each UI test
+5. ☐ **Check for existing test coverage overlap in destination repo**
+6. ☐ **Ask user how to handle any overlapping coverage**
+7. ☐ Identify tests that may affect auth state (logout, org switch, etc.)
+8. ☐ **Identify skipped tests (@pytest.mark.skip, pytest.skip())**
+9. ☐ Create comprehensive migration plan with repo assignments
+10. ☐ Get user approval on repository assignments
+11. ☐ Clarify selector strategy preference
 
 During conversion:
 1. ☐ Set up playwright.config.ts for each target repo (or update existing)
@@ -2328,26 +2928,33 @@ During conversion:
 3. ☐ **Verify no duplicate authentication in tests**
 4. ☐ **Use isolated browser context for auth-affecting tests**
 5. ☐ **Avoid conditional skips - no if/else logic that skips tests**
-6. ☐ **For skipped tests: create JIRA issue for future verification**
-7. ☐ **Mark skipped tests with test.skip() including JIRA reference**
-8. ☐ **Document skipped tests with JIRA issue link in migration docs**
-9. ☐ Convert page objects with proper imports
-10. ☐ Convert tests using playwright-test-auth patterns
-11. ☐ **Generate documentation for each test in destination repo structure**
-12. ☐ Organize files by target repository
+6. ☐ **For skipped UI tests (migrated but deferred): create JIRA issue for future verification**
+7. ☐ **For API/backend tests (not migrated): create JIRA issue for future migration to appropriate framework**
+8. ☐ **For IQE plugin tests (not migrated): skip without JIRA, inform user, document in summary**
+9. ☐ **For migrated UI tests marked as skipped (item 6 only): use test.skip() with JIRA reference**
+10. ☐ **Document skipped/non-migrated tests with JIRA issue links in migration docs**
+11. ☐ Convert page objects with proper imports
+12. ☐ Convert tests using playwright-test-auth patterns
+13. ☐ **Generate documentation for each test in destination repo structure**
+14. ☐ Organize files by target repository
 
 After conversion:
 1. ☐ Create migration summary (NO CI pipeline guidance)
-2. ☐ List shared components and duplication strategy
-3. ☐ Document environment variable requirements
-4. ☐ **Offer interactive transplantation assistance**
-5. ☐ **If repo path provided: create branch, copy files, commit, create PR**
-6. ☐ **After PR created: monitor for CodeRabbit comments**
-7. ☐ **Address all major+ priority CodeRabbit comments**
-8. ☐ **Report resolution status to user**
+2. ☐ **Document all non-UI tests with categories (plugin tests vs application tests)**
+3. ☐ **List all JIRA tickets created for API/backend test migration**
+4. ☐ List shared components and duplication strategy
+5. ☐ Document environment variable requirements
+6. ☐ **Offer interactive transplantation assistance**
+7. ☐ **If repo path provided: create branch, copy files, commit, create PR**
+8. ☐ **After PR created: monitor for CodeRabbit comments**
+9. ☐ **Address all major+ priority CodeRabbit comments**
+10. ☐ **Report resolution status to user**
 
 Your goal is to create a seamless migration that:
-- Preserves test intent exactly
+- Identifies UI tests vs non-UI tests early
+- Skips IQE plugin unit tests without JIRA
+- Creates JIRA tickets for valuable API/backend tests
+- Preserves test intent exactly for UI tests
 - Uses proper Red Hat SSO authentication (global or isolated as appropriate)
 - Uses symbolic constants for timeouts
 - Avoids duplicate authentication
