@@ -282,8 +282,12 @@ When user provides repository path:
    # Install dependencies
    npm install --save-dev @playwright/test @redhat-cloud-services/playwright-test-auth
 
+   # Review and stage changes
+   git status
+   git add -p  # Review each change interactively, or use explicit file paths
+   git diff --staged  # Verify staged changes before committing
+
    # Commit changes
-   git add playwright/ docs/ package.json package-lock.json
    git commit -m "feat(playwright): migrate chrome component IQE tests to Playwright
 
    - Add all-services.spec.ts with 3 test cases
