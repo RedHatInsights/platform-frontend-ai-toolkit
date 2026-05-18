@@ -122,12 +122,16 @@ Infer recommended option for each:
 - Options:
   - "Quality / Stability / Reliability (Recommended)"
   - "Security & Compliance"
+  - "Incidents & Support"
   - "Future Sustainability"
+  - "Associate Wellness & Development"
   - "Product / Portfolio Work"
 - Infer from:
   - CI/CD, refactoring, tooling, testing → Quality
   - CVE, security, vulnerability → Security
+  - Production issues, escalations, hotfixes → Incidents
   - Upgrades, migrations, architecture → Future
+  - Training, learning, team building → Wellness
   - New features, product work → Product
 
 **Question 3: Issue Type**
