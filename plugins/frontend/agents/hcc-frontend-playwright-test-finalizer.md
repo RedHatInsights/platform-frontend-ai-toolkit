@@ -156,7 +156,7 @@ For EACH converted test, generate a test step documentation file that QE can use
 Verifies that Red Hat SSO authentication works and the user session is properly established in the console.
 
 ### Prerequisites
-- `PLAYWRIGHT_USER` and `PLAYWRIGHT_PASSWORD` environment variables set
+- `E2E_USER` and `E2E_PASSWORD` environment variables set
 - Global authentication setup configured in playwright.config.ts
 - Stage environment accessible
 
@@ -201,8 +201,8 @@ Verifies that Red Hat SSO authentication works and the user session is properly 
 
 ### Environment Variables Required
 ```bash
-PLAYWRIGHT_USER=your-stage-username
-PLAYWRIGHT_PASSWORD=your-stage-password
+E2E_USER=your-stage-username
+E2E_PASSWORD=your-stage-password
 PLAYWRIGHT_BASE_URL=https://stage.foo.redhat.com:1337
 ```
 
@@ -420,7 +420,7 @@ The following components are used by multiple repositories and may need to be:
 Each repository needs:
 1. `playwright.config.ts` with global-setup configuration
 2. `playwright/.auth/` directory (gitignored)
-3. Environment variables: `PLAYWRIGHT_USER`, `PLAYWRIGHT_PASSWORD`, `PLAYWRIGHT_BASE_URL`
+3. Environment variables: `E2E_USER`, `E2E_PASSWORD`, `PLAYWRIGHT_BASE_URL`
 
 ## Skipped Tests Requiring Verification
 

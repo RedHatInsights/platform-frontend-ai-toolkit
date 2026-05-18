@@ -119,8 +119,8 @@ test('login flow from logged-out state', async ({ browser }) => {
 
   await page.goto('/');
   // Will redirect to SSO login
-  await page.fill('#username', process.env.PLAYWRIGHT_USER);
-  await page.fill('#password', process.env.PLAYWRIGHT_PASSWORD);
+  await page.fill('#username', process.env.E2E_USER);
+  await page.fill('#password', process.env.E2E_PASSWORD);
   await page.click('button[type="submit"]');
 
   await expect(page.locator('[data-ouia-component-id="chrome-user"]')).toBeVisible({ timeout: TIMEOUTS.ELEMENT_VISIBLE });
