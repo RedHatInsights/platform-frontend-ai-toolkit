@@ -160,7 +160,7 @@ class TestValidateAndBuild:
             description="",
             labels=["repo:insights-chrome", "repo:quickstarts"],
             assignee_type="bot",
-            assignee=None,
+            assignee="bot@redhat.com",
             prefix=None,
             activity_type=None,
             allowed_repos=allowed_repos,
@@ -253,7 +253,7 @@ class TestValidateAndBuild:
             description="",
             labels=["repo:unknown"],
             assignee_type="bot",
-            assignee=None,
+            assignee="bot@redhat.com",
             prefix=None,
             activity_type=None,
             allowed_repos=allowed_repos,
@@ -262,6 +262,63 @@ class TestValidateAndBuild:
         assert not result["valid"]
         assert "Unknown repo label: repo:unknown" in result["errors"]
         assert "repo_labels" in result["suggestions"]
+
+    def test_bot_missing_assignee(self, allowed_repos):
+        """Bot tickets must have assignee."""
+        result = validate_and_build(
+            summary="test",
+            team="Console - Framework",
+            issue_type="Story",
+            description="",
+            labels=[],
+            assignee_type="bot",
+            assignee=None,
+            prefix=None,
+            activity_type=None,
+            allowed_repos=allowed_repos,
+        )
+
+        assert not result["valid"]
+        assert "Missing assignee for assignee_type: bot" in result["errors"]
+        assert "assignee" in result["suggestions"]
+
+    def test_user_missing_assignee(self, allowed_repos):
+        """User tickets must have assignee."""
+        result = validate_and_build(
+            summary="test",
+            team="Console - Framework",
+            issue_type="Story",
+            description="",
+            labels=[],
+            assignee_type="user",
+            assignee="",
+            prefix=None,
+            activity_type=None,
+            allowed_repos=allowed_repos,
+        )
+
+        assert not result["valid"]
+        assert "Missing assignee for assignee_type: user" in result["errors"]
+        assert "assignee" in result["suggestions"]
+
+    def test_unassigned_with_assignee(self, allowed_repos):
+        """Unassigned tickets cannot have assignee."""
+        result = validate_and_build(
+            summary="test",
+            team="Console - Framework",
+            issue_type="Story",
+            description="",
+            labels=[],
+            assignee_type="unassigned",
+            assignee="user@redhat.com",
+            prefix=None,
+            activity_type=None,
+            allowed_repos=allowed_repos,
+        )
+
+        assert not result["valid"]
+        assert "Assignee provided but assignee_type is 'unassigned'" in result["errors"]
+        assert "assignee_type" in result["suggestions"]
 
     def test_team_uuid_format(self, allowed_repos):
         """Verify team UUID is plain string, not object."""
@@ -330,7 +387,7 @@ class TestValidateAndBuild:
             description="",
             labels=[],
             assignee_type="bot",
-            assignee=None,
+            assignee="bot@redhat.com",
             prefix="javascript-clients",
             activity_type=None,
             allowed_repos=allowed_repos,

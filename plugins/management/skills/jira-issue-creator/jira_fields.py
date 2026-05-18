@@ -193,6 +193,14 @@ def validate_and_build(
     if label_errors and assignee_type == "bot":
         suggestions["repo_labels"] = sorted(allowed_repos)[:10]  # Show first 10
 
+    # Validate assignee contract
+    if assignee_type in {"bot", "user"} and (not assignee or not assignee.strip()):
+        errors.append(f"Missing assignee for assignee_type: {assignee_type}")
+        suggestions["assignee"] = ["Provide email address or change assignee_type to 'unassigned'"]
+    if assignee_type == "unassigned" and assignee and assignee.strip():
+        errors.append(f"Assignee provided but assignee_type is 'unassigned'")
+        suggestions["assignee_type"] = ["Change to 'bot' or 'user', or remove assignee"]
+
     # If validation failed, return errors
     if errors:
         return {
