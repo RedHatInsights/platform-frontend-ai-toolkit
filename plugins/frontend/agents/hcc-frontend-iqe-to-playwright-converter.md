@@ -284,7 +284,7 @@ test('user is logged in', async ({ page }) => {
 ### Pattern for Custom Credentials with Isolated Auth
 
 ```typescript
-import { test as base, expect } from '@playwright/test';
+import { test as base, expect, BrowserContext } from '@playwright/test';
 import { chromium } from '@playwright/test';
 
 // Timeout constants
@@ -295,7 +295,7 @@ const TIMEOUTS = {
 } as const;
 
 // Helper to authenticate with custom credentials
-async function authenticateWithCustomCredentials(context, username: string, password: string) {
+async function authenticateWithCustomCredentials(context: BrowserContext, username: string, password: string) {
   const page = await context.newPage();
 
   // Navigate to app (will redirect to SSO)
