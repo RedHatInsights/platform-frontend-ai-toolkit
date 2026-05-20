@@ -174,7 +174,7 @@ export default defineConfig({
     storageState: 'playwright/.auth/user.json',
 
     /* Collect trace on failure for debugging */
-    trace: 'on-first-retry',
+    trace: 'retain-on-failure',
 
     /* Capture video on failure only (reduces CI artifacts) */
     video: 'retain-on-failure',
@@ -206,7 +206,7 @@ export default defineConfig({
 - `retries: 0` - No retries; tests should be deterministic and reliable
 - `maxFailures: process.env.CI ? 2 : undefined` - Stop after 2 failures in CI to save time/resources
 - `video/screenshot: 'retain-on-failure'` - Only capture artifacts on failure to reduce storage
-- `trace: 'on-first-retry'` - Collect detailed trace for debugging (though with 0 retries, this captures on first failure)
+- `trace: 'retain-on-failure'` - Collect detailed trace for all failed tests regardless of retry settings
 
 ### Test File Pattern
 
