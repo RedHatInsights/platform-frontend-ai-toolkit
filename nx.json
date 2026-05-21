@@ -68,7 +68,8 @@
     "version": {
       "conventionalCommits": true,
       "preVersionCommand": "nx run-many -t build",
-      "postVersionCommand": "npm run sync-plugin-versions"
+      "postVersionCommand": "npm run sync-plugin-versions",
+      "fallbackCurrentVersionResolver": "disk"
     },
     "git": {
       "commit": true,
