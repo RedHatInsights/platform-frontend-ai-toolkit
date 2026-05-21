@@ -59,7 +59,9 @@
       "infrastructure-plugin",
       "management-plugin"
     ],
+    "releaseTagPattern": "{projectName}@{version}",
     "changelog": {
+      "automaticFromRef": true,
       "projectChangelogs": {
         "createRelease": "github"
       }
