@@ -153,45 +153,83 @@ git commit -m "feat: update example agent"
 - **hcc-frontend-weekly-report** - Expert in generating weekly team reports by analyzing JIRA issues (user provides team identification criteria)
 - **hcc-frontend-yaml-setup-specialist** - Expert in creating frontend.yaml files for new applications with proper FEO configuration
 - **hcc-frontend-feo-migration-specialist** - Expert in migrating existing apps from static Chrome configuration to Frontend Operator managed system
-- **hcc-frontend-iqe-to-playwright-migration** - Expert in migrating IQE/Selenium tests to Playwright with Red Hat SSO authentication, generates QE verification docs
+- **hcc-frontend-iqe-test-analyzer** - Expert in analyzing IQE tests and creating migration plans (phase 1: analysis)
+- **hcc-frontend-iqe-to-playwright-converter** - Expert in converting IQE tests to Playwright TypeScript (phase 2: conversion)
+- **hcc-frontend-playwright-test-finalizer** - Expert in finalizing migrations with docs, PRs, and CodeRabbit resolution (phase 3: finalization)
 
 ### Test Migration
 
-The toolkit includes a specialized agent for migrating IQE (Selenium/Widgetastic) tests to modern Playwright:
+The toolkit includes three specialized agents for IQE-to-Playwright migration, working in sequence:
 
-**hcc-frontend-iqe-to-playwright-migration** - Converts Python/pytest-based IQE tests to TypeScript Playwright tests with:
+#### 1. **hcc-frontend-iqe-test-analyzer** (Analysis & Planning)
+Analyzes IQE tests and creates comprehensive migration plans with:
+- Repository identification (determines which frontend repo owns each test)
+- Existing test coverage overlap detection
+- Multi-user authentication detection
+- Auth state modification detection (logout, org switching, etc.)
+- Environment state assumption detection
+- Custom credentials detection
+- Comprehensive migration plan organized by repository
+
+**Output:** Migration plan with warnings and user decisions needed
+
+#### 2. **hcc-frontend-iqe-to-playwright-converter** (Code Conversion)
+Converts IQE tests to Playwright TypeScript with:
 - Proper `@redhat-cloud-services/playwright-test-auth` integration for Red Hat SSO
-- Repository organization (identifies which frontend repo owns each test)
-- Comprehensive QE verification documentation
+- Isolated authentication for state-affecting tests
+- Symbolic timeout constants (no hard-coded values)
 - CI-optimized configuration (single-threaded, no retries, max 2 failures)
 - Page object conversion from Widgetastic views
 - Selector modernization (XPath → role-based/CSS)
+- Parametrized test conversion
+- Skipped test handling with test.skip()
+
+**Output:** Converted test files organized by repository
+
+#### 3. **hcc-frontend-playwright-test-finalizer** (Documentation & Integration)
+Completes migration with:
+- QE verification documentation for each test
+- JIRA issue creation for skipped tests
+- Interactive file transplantation to destination repositories
+- Git branch creation and PR generation
+- CodeRabbit comment monitoring and resolution (major+ priority)
+- Migration summary documentation
+
+**Output:** Complete migration with PRs and documentation
 
 **⚠️ Limitation:** Only supports tests using a single user account. Multi-user tests require manual conversion or splitting.
 
-**Quick Start:**
-```
-Migrate test_login.py from /path/to/iqe-platform-ui-plugin to Playwright for insights-chrome
+**Quick Start (Sequential Workflow):**
+```bash
+# Step 1: Analyze
+Use hcc-frontend-iqe-test-analyzer to analyze test_login.py from /path/to/iqe-platform-ui-plugin
+
+# Step 2: Convert (after plan approval)
+Use hcc-frontend-iqe-to-playwright-converter to convert test_login.py using approved plan
+
+# Step 3: Finalize
+Use hcc-frontend-playwright-test-finalizer to generate docs and create PR for insights-chrome
 ```
 
 📋 **For detailed migration guide**, see: [tests/migration-demo/QUICKSTART.md](tests/migration-demo/QUICKSTART.md)
 
-**Example Migration Output:**
-- Converted test files with proper authentication setup
-- Playwright configuration optimized for CI
-- Human-readable test step documentation for QE verification
-- Transplantation instructions for target repository
+**Migration Workflow:**
+- **Analyze** → Creates migration plan with warnings and repository assignments
+- **Convert** → Generates Playwright test files with proper auth and modern patterns
+- **Finalize** → Completes integration with docs, transplantation, PRs, and CodeRabbit resolution
 
-The agent handles:
+**Key Features:**
 - ✅ Global authentication setup (no per-test login)
+- ✅ Isolated auth for tests that modify session state
+- ✅ Symbolic timeout constants (TIMEOUTS.PAGE_LOAD, etc.)
 - ✅ Cookie consent prompt disabling
-- ✅ Parametrized test conversion (for loops or separate tests based on complexity)
-- ✅ Fixture adaptation (removes auth fixtures)
-- ✅ Wait pattern modernization
-- ✅ Selector conversion with rationale documentation
-- ✅ Dynamic test generation (pytest_generate_tests → programmatic test creation)
-- ✅ Environment state assumption detection (warns when tests assume pre-existing data/config)
-- ✅ Idempotency recommendations (API/UI setup, fixtures, teardown strategies)
+- ✅ Parametrized test conversion
+- ✅ Environment state assumption detection
+- ✅ Test coverage overlap detection
+- ✅ JIRA tracking for skipped tests
+- ✅ Interactive file transplantation
+- ✅ Automated PR creation
+- ✅ CodeRabbit feedback resolution
 
 ### Infrastructure Agents
 
@@ -278,7 +316,7 @@ Add the following to your Claude Code MCP settings:
 
 Simply ask Claude Code to generate a report:
 
-```
+```text
 "Show me what Platform Framework accomplished this week"
 ```
 
@@ -473,7 +511,7 @@ This document tracks:
 
 ## Repository Structure
 
-```
+```text
 platform-frontend-ai-toolkit/
 ├── .claude-plugin/
 │   └── marketplace.json              # Marketplace config (lists all plugins)
