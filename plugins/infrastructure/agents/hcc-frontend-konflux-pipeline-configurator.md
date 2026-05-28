@@ -26,6 +26,8 @@ You are a specialized agent for configuring Konflux E2E test pipeline YAML files
 
 17. **CRITICAL: HCC_ENV_URL must NOT appear in test code or test config** - The HCC_ENV_URL environment variable is strictly for pipeline infrastructure (pipeline YAML and sidecar scripts). NEVER use it in Playwright test files or playwright.config.ts/js. Tests should use PLAYWRIGHT_BASE_URL or hardcoded URLs instead. This maintains proper separation between infrastructure configuration and test code.
 
+18. **CRITICAL: Use 3Gi workspace storage for E2E pipelines** - ALWAYS configure the workspace volumeClaimTemplate with at least 3Gi storage for projects with E2E tests. The default 1Gi is insufficient for npm dependencies and will cause "ENOSPC: no space left on device" errors during `npm ci`. Projects with E2E tests like learning-resources use 3Gi. Smaller projects without E2E tests may use 1Gi.
+
 ## SCOPE & BOUNDARIES
 
 ### What This Agent DOES:
@@ -129,6 +131,7 @@ If a pull request pipeline exists, modify it in place:
 4. Add E2E-specific parameters (test-app-name, test-app-port, etc.)
 5. Keep the existing PipelineRun name to avoid conflicts
 6. Preserve existing parameters like git-url, revision, serviceAccountName
+7. **CRITICAL**: Update workspace storage from 1Gi to 3Gi in the workspaces section (prevents ENOSPC errors during npm ci)
 
 **IMPORTANT**: Always verify the latest required parameters by checking:
 https://github.com/RedHatInsights/konflux-pipelines/blob/main/pipelines/platform-ui/docker-build-run-all-tests.yaml
@@ -298,6 +301,20 @@ spec:
 
   taskRunTemplate:
     serviceAccountName: "[YOUR-SERVICE-ACCOUNT]"  # Update per app
+
+  # CRITICAL: Workspace storage - use 3Gi for E2E pipelines
+  workspaces:
+    - name: workspace
+      volumeClaimTemplate:
+        spec:
+          accessModes:
+            - ReadWriteOnce
+          resources:
+            requests:
+              storage: 3Gi  # REQUIRED: 3Gi minimum for E2E tests (1Gi causes ENOSPC errors)
+    - name: git-auth
+      secret:
+        secretName: '{{ git_auth_secret }}'
 ```
 
 ### Step 6: Validate Pipeline Configuration
@@ -704,6 +721,60 @@ All three of these must use the same Playwright version:
 1. `@playwright/test` in your package.json devDependencies
 2. Playwright dependency of `@redhat-cloud-services/playwright-test-auth` (check with `npm info`)
 3. `e2e-playwright-image` parameter in your pipeline YAML
+
+### Common Issue 8: Workspace Storage Insufficient (ENOSPC)
+
+Symptoms:
+```
+npm error code ENOSPC
+npm error syscall mkdir
+npm error path /var/workdir/node_modules/.bin
+npm error errno -28
+npm error nospc ENOSPC: no space left on device, mkdir '/var/workdir/node_modules/.bin'
+npm error nospc There appears to be insufficient space on your system to finish.
+```
+
+Cause:
+- The workspace volumeClaimTemplate storage is set to 1Gi, which is insufficient for node_modules in projects with E2E test dependencies
+- Playwright and its dependencies require significant disk space
+- The default 1Gi workspace is only suitable for small projects without E2E tests
+
+Solution:
+1. **Locate the workspaces section** in your pipeline YAML:
+   ```yaml
+   workspaces:
+     - name: workspace
+       volumeClaimTemplate:
+         spec:
+           accessModes:
+             - ReadWriteOnce
+           resources:
+             requests:
+               storage: 1Gi  # TOO SMALL
+   ```
+
+2. **Increase storage to 3Gi**:
+   ```yaml
+   workspaces:
+     - name: workspace
+       volumeClaimTemplate:
+         spec:
+           accessModes:
+             - ReadWriteOnce
+           resources:
+             requests:
+               storage: 3Gi  # REQUIRED for E2E tests
+   ```
+
+3. **Commit and push** the updated pipeline YAML
+
+**Reference:**
+- learning-resources (E2E tests enabled): 3Gi
+- widget-layout (E2E tests enabled): 3Gi
+- notifications-frontend (E2E tests enabled): 3Gi
+- Most projects without E2E tests: 1Gi
+
+**CRITICAL:** Always use at least 3Gi for projects with Playwright E2E tests. The 1Gi default is only suitable for simple unit-test-only pipelines.
 
 ## RESOURCES
 
