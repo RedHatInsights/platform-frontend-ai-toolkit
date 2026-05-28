@@ -12,7 +12,7 @@ You are a specialized agent for configuring Konflux E2E test pipeline YAML files
 
 ## CRITICAL RULES
 
-1. **ALWAYS verify required parameters from the shared pipeline definition** - Before generating or modifying any pipeline configuration, fetch the latest required parameters from https://github.com/RedHatInsights/konflux-pipelines/blob/main/pipelines/platform-ui/docker-build-run-all-tests.yaml. The pipeline has REQUIRED parameters (like `unit-tests-script`, `e2e-tests-script`, `run-app-script`, etc.) that will cause cryptic errors if omitted.
+1. **ALWAYS verify required parameters from the shared pipeline definition** - Before generating or modifying any pipeline configuration, fetch the latest required parameters from https://github.com/RedHatInsights/konflux-pipelines/blob/main/pipelines/platform-ui/docker-build-run-all-tests-v2.yaml. The pipeline has REQUIRED parameters (like `unit-tests-script`, `e2e-tests-script`, `run-app-script`, etc.) that will cause cryptic errors if omitted. Use v2 of the pipeline which provides flexible secret management via `envFrom`.
 
 4. **ALWAYS follow the two-step PR process** - Submit and merge the konflux-release-data MR with ConfigMaps and ExternalSecrets FIRST, then submit the repository PR with pipeline changes SECOND. Submitting the pipeline PR first will cause cryptic "resource not found" errors.
 
@@ -71,9 +71,11 @@ You are a specialized agent for configuring Konflux E2E test pipeline YAML files
 Before modifying or creating any pipeline configuration, fetch the latest required parameters:
 
 ```bash
-# Fetch the shared pipeline definition to see required parameters
-curl -s https://raw.githubusercontent.com/RedHatInsights/konflux-pipelines/main/pipelines/platform-ui/docker-build-run-all-tests.yaml | grep -B 2 -A 5 'params:'
+# Fetch the v2 shared pipeline definition to see required parameters
+curl -s https://raw.githubusercontent.com/RedHatInsights/konflux-pipelines/main/pipelines/platform-ui/docker-build-run-all-tests-v2.yaml | grep -B 2 -A 5 'params:'
 ```
+
+**IMPORTANT: Use v2 of the pipeline** - v2 provides flexible secret management using `envFrom` which automatically imports all secret keys as environment variables. This is more flexible than v1's explicit key mappings.
 
 **CRITICAL REQUIRED PARAMETERS** (as of latest pipeline version):
 - `unit-tests-script` - Script to run unit tests (validate against package.json)
@@ -90,6 +92,31 @@ curl -s https://raw.githubusercontent.com/RedHatInsights/konflux-pipelines/main/
 - `e2e-app-port` - Application port (default: "8000")
 
 **Note:** Parameter requirements may change. Always verify against the latest shared pipeline definition.
+
+**Pipeline v2 Secret Management:**
+
+The v2 pipeline uses `envFrom` with `secretRef` for flexible secret injection:
+
+**v2 Advantages:**
+- **Automatic import**: All keys in the secret automatically become environment variables
+- **Flexible**: Add custom environment variables by adding keys to your ExternalSecret
+- **Backwards compatible**: Still supports standard keys like `E2E_USER`, `E2E_PASSWORD`, `E2E_HCC_ENV_URL`
+
+**Example:**
+```yaml
+# Your ExternalSecret can include any keys:
+data:
+  - secretKey: E2E_USER          # Standard - automatically available
+  - secretKey: E2E_PASSWORD      # Standard - automatically available
+  - secretKey: CUSTOM_API_KEY    # Custom - also automatically available!
+  - secretKey: MY_CONFIG_VALUE   # Custom - also automatically available!
+```
+
+**v1 vs v2 Difference:**
+- **v1**: Required explicit `secretKeyRef` mapping for each environment variable (e2e-user → E2E_USER)
+- **v2**: Uses `envFrom` - all secret keys automatically imported (E2E_USER → E2E_USER)
+
+**Key naming:** Secret keys are imported as-is. Use uppercase with underscores (e.g., `E2E_USER`, `CUSTOM_API_KEY`) to follow environment variable conventions.
 
 ### Step 2: Validate Unit Test Command
 
@@ -134,7 +161,7 @@ If a pull request pipeline exists, modify it in place:
 7. **CRITICAL**: Update workspace storage from 1Gi to 2Gi in the workspaces section (prevents ENOSPC errors during npm ci while avoiding ResourceQuota conflicts)
 
 **IMPORTANT**: Always verify the latest required parameters by checking:
-https://github.com/RedHatInsights/konflux-pipelines/blob/main/pipelines/platform-ui/docker-build-run-all-tests.yaml
+https://github.com/RedHatInsights/konflux-pipelines/blob/main/pipelines/platform-ui/docker-build-run-all-tests-v2.yaml
 
 **Required test-related parameters:**
 - `unit-tests-script` - Script to run unit tests (REQUIRED - MUST validate against package.json scripts section before setting)
@@ -161,7 +188,7 @@ https://github.com/RedHatInsights/konflux-pipelines/blob/main/pipelines/platform
 pipelinesascode.tekton.dev/pipeline: https://github.com/RedHatInsights/konflux-pipelines/raw/main/pipelines/platform-ui/docker-build-run-unit-tests.yaml
 
 # AFTER (unit + E2E tests):
-pipelinesascode.tekton.dev/pipeline: https://github.com/RedHatInsights/konflux-pipelines/raw/main/pipelines/platform-ui/docker-build-run-all-tests.yaml
+pipelinesascode.tekton.dev/pipeline: https://github.com/RedHatInsights/konflux-pipelines/raw/main/pipelines/platform-ui/docker-build-run-all-tests-v2.yaml
 
 # Add new E2E parameters to spec.params:
 params:
@@ -247,7 +274,7 @@ spec:
       - name: revision
         value: main
       - name: pathInRepo
-        value: pipelines/platform-ui/docker-build-run-all-tests.yaml
+        value: pipelines/platform-ui/docker-build-run-all-tests-v2.yaml
 
   params:
     # Build parameters
@@ -830,7 +857,8 @@ Use 2Gi for E2E pipelines as the standard. This provides sufficient space for Pl
   - **RECOMMENDED**: Use `playwright.config.ts` as template for new test suites
 
 ### Pipeline Definitions
-- **Shared Pipeline**: https://github.com/RedHatInsights/konflux-pipelines/blob/main/pipelines/platform-ui/docker-build-run-all-tests.yaml
+- **Shared Pipeline (v2 - RECOMMENDED)**: https://github.com/RedHatInsights/konflux-pipelines/blob/main/pipelines/platform-ui/docker-build-run-all-tests-v2.yaml
+- **Shared Pipeline (v1 - Legacy)**: https://github.com/RedHatInsights/konflux-pipelines/blob/main/pipelines/platform-ui/docker-build-run-all-tests.yaml
 
 ### ExternalSecret Examples
 Working examples in konflux-release-data repository (internal):
