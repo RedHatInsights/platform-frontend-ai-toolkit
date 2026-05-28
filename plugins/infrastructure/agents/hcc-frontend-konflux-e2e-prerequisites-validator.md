@@ -163,36 +163,104 @@ You are a specialized agent for validating repository readiness before setting u
 
 This is the most common source of pipeline failures. Verify alignment across:
 
-1. **Package.json Playwright version:**
-   ```bash
-   # Extract version from package.json
-   cat package.json | jq '.devDependencies["@playwright/test"]'
-   # Example output: "1.40.0"
-   ```
+**Step 1: Check what version the auth package actually uses**
 
-2. **Auth package required Playwright version:**
-   ```bash
-   # Check what Playwright version the auth package requires
-   npm info @redhat-cloud-services/playwright-test-auth peerDependencies
-   # Example output: "@playwright/test": "^1.40.0"
-   ```
+```bash
+# Check auth package peerDependencies (tells us the allowed range)
+npm info @redhat-cloud-services/playwright-test-auth peerDependencies
+# Example output: "@playwright/test": "^1.40.0", "playwright": "^1.40.0"
+```
 
-3. **Docker image version (to be used in pipeline YAML):**
-   - Format: `mcr.microsoft.com/playwright:v<version>-jammy`
-   - Example: If both above use 1.40.0, use `mcr.microsoft.com/playwright:v1.40.0-jammy`
+**⚠️ IMPORTANT: peerDependencies use semver ranges (^1.40.0 allows 1.40.0 - 1.99.x)**
 
-**Alignment Validation:**
-- ✅ **Correct:** All three use version 1.40.0
-- ❌ **Incorrect:** package.json uses 1.40.0, auth package requires 1.38.0, image uses v1.42.0
-- If misaligned, guide developer to install matching versions:
-  ```bash
-  # Install matching Playwright version
-  npm install -D @playwright/test@1.40.0
-  ```
+The `^` means npm can install ANY version from 1.40.0 up to (but not including) 2.0.0. This can cause version mismatches!
+
+**Step 2: Install Playwright with EXPLICIT versions**
+
+To avoid version mismatch, install BOTH packages with the SAME explicit version:
+
+```bash
+# First, check what version range the auth package accepts
+npm info @redhat-cloud-services/playwright-test-auth peerDependencies
+
+# Then pick a specific version within that range (use latest in range)
+# For ^1.40.0, you could use 1.40.0, 1.50.0, 1.60.0, etc.
+
+# Install BOTH @playwright/test AND playwright with the SAME version
+npm install -D @playwright/test@1.60.0 playwright@1.60.0 @redhat-cloud-services/playwright-test-auth
+
+# Example for different version:
+# npm install -D @playwright/test@1.50.0 playwright@1.50.0 @redhat-cloud-services/playwright-test-auth
+```
+
+**Why install both?**
+- `@playwright/test` - The test runner
+- `playwright` - The browser automation library (dependency of auth package)
+- If you only install `@playwright/test@1.40.0`, npm might resolve `playwright` to 1.60.0 from auth package's peerDependency range
+
+**Step 3: Verify ACTUAL installed versions (not just package.json)**
+
+**CRITICAL:** Don't trust package.json alone! Check what npm actually installed:
+
+```bash
+# Check what's ACTUALLY installed in node_modules
+npm list @playwright/test playwright
+
+# Expected output (all same version):
+# ├─┬ @playwright/test@1.60.0
+# │ └── playwright@1.60.0 deduped
+# ├─┬ @redhat-cloud-services/playwright-test-auth@0.0.2
+# │ ├── @playwright/test@1.60.0 deduped
+# │ └── playwright@1.60.0 deduped
+# └── playwright@1.60.0
+```
+
+**✅ Good (all deduped to same version):**
+```
+@playwright/test@1.60.0
+playwright@1.60.0 deduped
+```
+
+**❌ Bad (version mismatch):**
+```
+@playwright/test@1.40.0
+playwright@1.60.0  <-- MISMATCH! Different from @playwright/test
+```
+
+**If versions don't match, reinstall with explicit versions:**
+```bash
+# Remove and reinstall with matching versions
+npm uninstall @playwright/test playwright @redhat-cloud-services/playwright-test-auth
+npm install -D @playwright/test@1.60.0 playwright@1.60.0 @redhat-cloud-services/playwright-test-auth
+
+# Verify alignment
+npm list @playwright/test playwright
+```
+
+**Step 4: Set Docker image to match installed version**
+
+```bash
+# Use the version from Step 3 verification
+# If npm list shows 1.60.0, use:
+e2e-playwright-image: "mcr.microsoft.com/playwright:v1.60.0-jammy"
+
+# If npm list shows 1.50.0, use:
+e2e-playwright-image: "mcr.microsoft.com/playwright:v1.50.0-jammy"
+```
+
+**Final Three-Way Alignment Check:**
+
+| Component | Version | How to Check |
+|-----------|---------|--------------|
+| @playwright/test | 1.60.0 | `npm list @playwright/test` |
+| playwright | 1.60.0 | `npm list playwright` |
+| Docker image | v1.60.0-jammy | Pipeline YAML parameter |
+
+**All three MUST match exactly** or pipeline will fail with browser compatibility errors.
 
 **Document the aligned version for pipeline configuration:**
 - This version will be used in the `e2e-playwright-image` parameter later
-- Example: `mcr.microsoft.com/playwright:v1.40.0-jammy`
+- Example: `mcr.microsoft.com/playwright:v1.60.0-jammy`
 
 **Verify test script exists in package.json:**
 
