@@ -26,7 +26,7 @@ You are a specialized agent for configuring Konflux E2E test pipeline YAML files
 
 17. **CRITICAL: HCC_ENV_URL must NOT appear in test code or test config** - The HCC_ENV_URL environment variable is strictly for pipeline infrastructure (pipeline YAML and sidecar scripts). NEVER use it in Playwright test files or playwright.config.ts/js. Tests should use PLAYWRIGHT_BASE_URL or hardcoded URLs instead. This maintains proper separation between infrastructure configuration and test code.
 
-18. **CRITICAL: Use 3Gi workspace storage for E2E pipelines** - ALWAYS configure the workspace volumeClaimTemplate with at least 3Gi storage for projects with E2E tests. The default 1Gi is insufficient for npm dependencies and will cause "ENOSPC: no space left on device" errors during `npm ci`. Projects with E2E tests like learning-resources use 3Gi. Smaller projects without E2E tests may use 1Gi.
+18. **CRITICAL: Use 2Gi workspace storage for E2E pipelines** - ALWAYS configure the workspace volumeClaimTemplate with 2Gi storage for projects with E2E tests. The default 1Gi is insufficient for npm dependencies and will cause "ENOSPC: no space left on device" errors during `npm ci`. Using 3Gi may exceed namespace ResourceQuota limits and cause "Operation cannot be fulfilled on resourcequotas" errors. Projects with E2E tests like landing-page-frontend use 2Gi successfully. Smaller projects without E2E tests may use 1Gi.
 
 ## SCOPE & BOUNDARIES
 
@@ -131,7 +131,7 @@ If a pull request pipeline exists, modify it in place:
 4. Add E2E-specific parameters (test-app-name, test-app-port, etc.)
 5. Keep the existing PipelineRun name to avoid conflicts
 6. Preserve existing parameters like git-url, revision, serviceAccountName
-7. **CRITICAL**: Update workspace storage from 1Gi to 3Gi in the workspaces section (prevents ENOSPC errors during npm ci)
+7. **CRITICAL**: Update workspace storage from 1Gi to 2Gi in the workspaces section (prevents ENOSPC errors during npm ci while avoiding ResourceQuota conflicts)
 
 **IMPORTANT**: Always verify the latest required parameters by checking:
 https://github.com/RedHatInsights/konflux-pipelines/blob/main/pipelines/platform-ui/docker-build-run-all-tests.yaml
@@ -302,7 +302,7 @@ spec:
   taskRunTemplate:
     serviceAccountName: "[YOUR-SERVICE-ACCOUNT]"  # Update per app
 
-  # CRITICAL: Workspace storage - use 3Gi for E2E pipelines
+  # CRITICAL: Workspace storage - use 2Gi for E2E pipelines
   workspaces:
     - name: workspace
       volumeClaimTemplate:
@@ -311,7 +311,7 @@ spec:
             - ReadWriteOnce
           resources:
             requests:
-              storage: 3Gi  # REQUIRED: 3Gi minimum for E2E tests (1Gi causes ENOSPC errors)
+              storage: 2Gi  # REQUIRED: 2Gi for E2E tests (1Gi causes ENOSPC, 3Gi may exceed quota)
     - name: git-auth
       secret:
         secretName: '{{ git_auth_secret }}'
@@ -753,7 +753,7 @@ Solution:
                storage: 1Gi  # TOO SMALL
    ```
 
-2. **Increase storage to 3Gi**:
+2. **Increase storage to 2Gi**:
    ```yaml
    workspaces:
      - name: workspace
@@ -763,18 +763,60 @@ Solution:
              - ReadWriteOnce
            resources:
              requests:
-               storage: 3Gi  # REQUIRED for E2E tests
+               storage: 2Gi  # RECOMMENDED for E2E tests
    ```
 
 3. **Commit and push** the updated pipeline YAML
 
 **Reference:**
-- learning-resources (E2E tests enabled): 3Gi
+- landing-page-frontend (E2E tests enabled): 2Gi
 - widget-layout (E2E tests enabled): 3Gi
 - notifications-frontend (E2E tests enabled): 3Gi
+- learning-resources (E2E tests enabled): 3Gi
 - Most projects without E2E tests: 1Gi
 
-**CRITICAL:** Always use at least 3Gi for projects with Playwright E2E tests. The 1Gi default is only suitable for simple unit-test-only pipelines.
+**CRITICAL:** Always use 2Gi for projects with Playwright E2E tests. The 1Gi default is only suitable for simple unit-test-only pipelines. Using 3Gi may cause ResourceQuota conflicts ("Operation cannot be fulfilled on resourcequotas") in namespaces with limited quotas.
+
+### Common Issue 9: ResourceQuota Conflict
+
+Symptoms:
+```
+Tekton Controller has reported this error: Operation cannot be fulfilled on resourcequotas "konflux":
+the object has been modified; please apply your changes to the latest version and try again
+```
+
+Cause:
+- The workspace storage request (e.g., 3Gi) exceeds the namespace's ResourceQuota limits
+- Multiple concurrent pipelines competing for limited storage quota
+- Namespace has insufficient total storage quota allocation
+
+Solution:
+1. **Reduce workspace storage to 2Gi**:
+   ```yaml
+   workspaces:
+     - name: workspace
+       volumeClaimTemplate:
+         spec:
+           resources:
+             requests:
+               storage: 2Gi  # Reduced from 3Gi to fit within quota
+   ```
+
+2. **Verify the change fixes the issue**:
+   - Commit and push the updated pipeline
+   - Monitor the pipeline run in Konflux UI
+   - The error should resolve if 2Gi fits within quota
+
+3. **If 2Gi still causes quota issues** (rare):
+   - Check if other pipelines are running concurrently in the same namespace
+   - Contact #konflux-users to request quota increase for your namespace
+   - Temporarily pause other pipeline runs if needed
+
+**Root cause:**
+Kubernetes namespaces have ResourceQuota objects that limit total storage requests. If all running PipelineRuns request 3Gi each and multiple PRs are open simultaneously, the total can exceed the namespace quota.
+
+**Best practice:**
+Use 2Gi for E2E pipelines as the standard. This provides sufficient space for Playwright dependencies while minimizing quota pressure in shared namespaces.
 
 ## RESOURCES
 
