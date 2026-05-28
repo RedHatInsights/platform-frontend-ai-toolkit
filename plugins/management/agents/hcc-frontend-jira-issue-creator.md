@@ -89,14 +89,14 @@ Team identification uses the Team field (`customfield_10001`), NOT labels. Label
 | Scenario | Labels |
 |----------|--------|
 | Unassigned (any team) | none (empty) |
-| Bot assigned (any team) | `hcc-ai-framework`, `repo:<name>` |
+| Bot assigned (any team) | `hcc-ai-bot`, `repo:<name>` |
 
 **Label constraints (closed list only):**
-1. Bot label: use ONLY `hcc-ai-framework` when ticket assigned to bot
+1. Bot label: use ONLY `hcc-ai-bot` when ticket assigned to bot
 2. Repo labels: use ONLY `repo:<name>` from list below
 3. **Do NOT add team labels, technology names, tool names, or fabricated labels**
 
-Unassigned tickets have NO labels. Bot-assigned tickets have ONLY `hcc-ai-framework` + repo labels.
+Unassigned tickets have NO labels. Bot-assigned tickets have ONLY `hcc-ai-bot` + repo labels.
 
 **Bot assignee:** For bot-assigned tickets — load schema with `ToolSearch: select:mcp__mcp-atlassian__jira_get_user_profile`, call with account ID `712020:c6b31fa1-eaf5-4921-af5b-cb625f24bb1a`, use returned `email` field.
 
@@ -104,7 +104,7 @@ Unassigned tickets have NO labels. Bot-assigned tickets have ONLY `hcc-ai-framew
 `repo:insights-chrome`, `repo:astro-virtual-assistant-frontend`, `repo:widget-layout`, `repo:notifications-frontend`, `repo:learning-resources`, `repo:frontend-operator`, `repo:widget-layout-backend`, `repo:quickstarts`, `repo:chrome-service-backend`, `repo:astro-virtual-assistant-v2`, `repo:payload-tracker-frontend`, `repo:pdf-generator`, `repo:app-interface`
 
 **Example:**
-Bot-assigned framework ticket → Labels: `hcc-ai-framework`, `repo:insights-chrome`
+Bot-assigned framework ticket → Labels: `hcc-ai-bot`, `repo:insights-chrome`
 Unassigned UI ticket → Labels: none
 
 ## Team Field (customfield_10001)
@@ -121,37 +121,25 @@ Set team using UUID as **plain string**:
 
 ## JIRA Tool Usage
 
-Before calling any Jira MCP tool, load schema:
-
-```text
-ToolSearch: select:mcp__mcp-atlassian__jira_create_issue
-```
+**Use MCP tools, not Python code.** All Jira interactions use the `mcp-atlassian` MCP server tools.
 
 For bot-assigned tickets (including dry runs), fetch assignee email:
 
 ```text
-ToolSearch: select:mcp__mcp-atlassian__jira_get_user_profile
-jira_get_user_profile(user_identifier="712020:c6b31fa1-eaf5-4921-af5b-cb625f24bb1a")
+mcp__mcp-atlassian__jira_get_user_profile(user_identifier="712020:c6b31fa1-eaf5-4921-af5b-cb625f24bb1a")
 # use returned email field as assignee value
 ```
 
-Use `mcp__mcp-atlassian__jira_create_issue`:
+Create issues with `mcp__mcp-atlassian__jira_create_issue`:
 
-```python
-jira_create_issue(
+```text
+mcp__mcp-atlassian__jira_create_issue(
     project_key="RHCLOUD",
     summary="[repo-name] Short description under 50 chars",
     issue_type="Story",
     assignee="<email from jira_get_user_profile>",  # bot tickets only
     description="<markdown description>",
-    additional_fields=json.dumps({
-        "labels": [
-            "hcc-ai-framework",
-            "repo:insights-chrome"
-        ],
-        "customfield_10464": {"value": "Security & Compliance"},
-        "customfield_10001": "<team_uuid>",  # from Teams table
-    })
+    additional_fields="{\"labels\": [\"hcc-ai-bot\", \"repo:insights-chrome\"], \"customfield_10464\": {\"value\": \"Security & Compliance\"}, \"customfield_10001\": \"<team_uuid>\"}"
 )
 ```
 
@@ -170,7 +158,7 @@ Created RHCLOUD-XXXX
 - Type: Story
 - Summary: [insights-chrome] Short description
 - Team: Console - Framework
-- Labels: hcc-ai-framework, repo:insights-chrome
+- Labels: hcc-ai-bot, repo:insights-chrome
 - Activity Type: Security & Compliance (auto-generated)
 - View: https://redhat.atlassian.net/browse/RHCLOUD-XXXX
 ```
