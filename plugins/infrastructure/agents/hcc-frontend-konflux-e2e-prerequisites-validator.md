@@ -142,6 +142,20 @@ You are a specialized agent for validating repository readiness before setting u
      ```
    - If found, guide developer to replace with PLAYWRIGHT_BASE_URL
 
+4. **CRITICAL: Verify baseURL is set correctly for CI:**
+   - Config MUST use `https://stage.foo.redhat.com:1337` as the default baseURL
+   - This points to the frontend-dev-proxy sidecar that runs in the Konflux pipeline
+   - Check the baseURL setting in playwright.config.*:
+     ```typescript
+     // CORRECT - matches working repos
+     use: {
+       baseURL: process.env.PLAYWRIGHT_BASE_URL || 'https://stage.foo.redhat.com:1337',
+       ignoreHTTPSErrors: true,  // Required for self-signed certs in CI proxy
+     }
+     ```
+   - Common mistake: Using `localhost:8004` or `localhost:8000` (WRONG - only works locally)
+   - Reference: learning-resources, frontend-starter-app, landing-page-frontend all use `stage.foo.redhat.com:1337`
+
 **CRITICAL: Install the shared authentication package:**
 
 1. Check `devDependencies` for `@redhat-cloud-services/playwright-test-auth`:

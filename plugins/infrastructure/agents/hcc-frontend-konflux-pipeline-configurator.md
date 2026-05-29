@@ -28,6 +28,8 @@ You are a specialized agent for configuring Konflux E2E test pipeline YAML files
 
 18. **CRITICAL: Use 2Gi workspace storage for E2E pipelines** - ALWAYS configure the workspace volumeClaimTemplate with 2Gi storage for projects with E2E tests. The default 1Gi is insufficient for npm dependencies and will cause "ENOSPC: no space left on device" errors during `npm ci`. Using 3Gi may exceed namespace ResourceQuota limits and cause "Operation cannot be fulfilled on resourcequotas" errors. Projects with E2E tests like landing-page-frontend use 2Gi successfully. Smaller projects without E2E tests may use 1Gi.
 
+19. **CRITICAL: Add hostAliases for stage.foo.redhat.com DNS resolution** - ALWAYS add `taskRunTemplate.podTemplate.hostAliases` to map `stage.foo.redhat.com` to localhost. Without this, Playwright tests will fail with "ERR_NAME_NOT_RESOLVED" because the hostname doesn't exist in the cluster. The hostAliases adds `/etc/hosts` entries that redirect `stage.foo.redhat.com:1337` to the frontend-dev-proxy sidecar running on `localhost:1337`.
+
 ## SCOPE & BOUNDARIES
 
 ### What This Agent DOES:
@@ -153,12 +155,13 @@ ls .tekton/*pull-request*.yaml
 If a pull request pipeline exists, modify it in place:
 
 1. Read the existing file to understand current configuration
-2. Update the pipeline reference to use `docker-build-run-all-tests.yaml`
+2. Update the pipeline reference to use `docker-build-run-all-tests-v2.yaml`
 3. **CRITICAL**: Verify all REQUIRED parameters from the shared pipeline definition
 4. Add E2E-specific parameters (test-app-name, test-app-port, etc.)
 5. Keep the existing PipelineRun name to avoid conflicts
 6. Preserve existing parameters like git-url, revision, serviceAccountName
 7. **CRITICAL**: Update workspace storage from 1Gi to 2Gi in the workspaces section (prevents ENOSPC errors during npm ci while avoiding ResourceQuota conflicts)
+8. **CRITICAL**: Add hostAliases to taskRunTemplate.podTemplate for stage.foo.redhat.com DNS resolution (prevents ERR_NAME_NOT_RESOLVED errors)
 
 **IMPORTANT**: Always verify the latest required parameters by checking:
 https://github.com/RedHatInsights/konflux-pipelines/blob/main/pipelines/platform-ui/docker-build-run-all-tests-v2.yaml
@@ -328,6 +331,16 @@ spec:
 
   taskRunTemplate:
     serviceAccountName: "[YOUR-SERVICE-ACCOUNT]"  # Update per app
+    podTemplate:
+      # CRITICAL: Override /etc/hosts to redirect stage.foo.redhat.com to localhost
+      # Without this, DNS resolution fails with ERR_NAME_NOT_RESOLVED
+      hostAliases:
+        - ip: "::1"
+          hostnames:
+            - "stage.foo.redhat.com"
+        - ip: "127.0.0.1"
+          hostnames:
+            - "stage.foo.redhat.com"
 
   # CRITICAL: Workspace storage - use 2Gi for E2E pipelines
   workspaces:
@@ -844,6 +857,56 @@ Kubernetes namespaces have ResourceQuota objects that limit total storage reques
 
 **Best practice:**
 Use 2Gi for E2E pipelines as the standard. This provides sufficient space for Playwright dependencies while minimizing quota pressure in shared namespaces.
+
+### Common Issue 10: DNS Resolution Failure (ERR_NAME_NOT_RESOLVED)
+
+**Symptoms:**
+```
+Error: page.goto: net::ERR_NAME_NOT_RESOLVED at https://stage.foo.redhat.com:1337/
+```
+
+**Cause:**
+- Missing `hostAliases` configuration in the pipeline YAML
+- The hostname `stage.foo.redhat.com` doesn't exist as a real DNS entry in the cluster
+- Playwright tests can't resolve the hostname to connect to the frontend-dev-proxy sidecar
+
+**Solution:**
+
+1. **Add hostAliases to taskRunTemplate.podTemplate**:
+   ```yaml
+   taskRunTemplate:
+     serviceAccountName: build-pipeline-your-app
+     podTemplate:
+       # Override /etc/hosts to redirect stage.foo.redhat.com to localhost
+       hostAliases:
+         - ip: "::1"
+           hostnames:
+             - "stage.foo.redhat.com"
+         - ip: "127.0.0.1"
+           hostnames:
+             - "stage.foo.redhat.com"
+   ```
+
+2. **Verify playwright.config.ts uses correct baseURL**:
+   ```typescript
+   use: {
+     baseURL: process.env.PLAYWRIGHT_BASE_URL || 'https://stage.foo.redhat.com:1337',
+     ignoreHTTPSErrors: true,
+   }
+   ```
+
+3. **Commit and push** the updated pipeline YAML
+
+**How it works:**
+- The `hostAliases` adds `/etc/hosts` entries that map `stage.foo.redhat.com` to `127.0.0.1` (localhost)
+- Playwright connects to `https://stage.foo.redhat.com:1337`
+- DNS resolves to `localhost:1337` where the frontend-dev-proxy sidecar is listening
+- The proxy routes requests to the app or upstream stage environment based on ConfigMap
+
+**Reference:**
+- learning-resources uses this pattern
+- frontend-starter-app uses this pattern
+- All working E2E test repos include hostAliases
 
 ## RESOURCES
 
