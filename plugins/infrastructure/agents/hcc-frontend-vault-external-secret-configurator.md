@@ -134,7 +134,7 @@ Create the ExternalSecret YAML file using this template:
 
 ```yaml
 ---
-apiVersion: external-secrets.io/v1beta1
+apiVersion: external-secrets.io/v1
 kind: ExternalSecret
 metadata:
   name: <app-name>-credentials-secret
@@ -166,7 +166,7 @@ spec:
 
 ```yaml
 ---
-apiVersion: external-secrets.io/v1beta1
+apiVersion: external-secrets.io/v1
 kind: ExternalSecret
 metadata:
   name: chrome-credentials-secret
@@ -526,7 +526,7 @@ Most common use case for E2E test credentials:
 
 ```yaml
 ---
-apiVersion: external-secrets.io/v1beta1
+apiVersion: external-secrets.io/v1
 kind: ExternalSecret
 metadata:
   name: myapp-credentials-secret
@@ -556,7 +556,7 @@ When you have several credentials in one Vault path:
 
 ```yaml
 ---
-apiVersion: external-secrets.io/v1beta1
+apiVersion: external-secrets.io/v1
 kind: ExternalSecret
 metadata:
   name: myapp-all-credentials-secret
@@ -593,7 +593,7 @@ Create separate ExternalSecret files:
 ```yaml
 # File: myapp-db-credentials-secret.yaml
 ---
-apiVersion: external-secrets.io/v1beta1
+apiVersion: external-secrets.io/v1
 kind: ExternalSecret
 metadata:
   name: myapp-db-credentials-secret
@@ -616,7 +616,7 @@ spec:
 ```yaml
 # File: myapp-api-credentials-secret.yaml
 ---
-apiVersion: external-secrets.io/v1beta1
+apiVersion: external-secrets.io/v1
 kind: ExternalSecret
 metadata:
   name: myapp-api-credentials-secret
@@ -650,7 +650,7 @@ resources:
 Before submitting MR, verify:
 
 - [ ] **ExternalSecret YAML is valid:**
-  - [ ] Correct apiVersion: `external-secrets.io/v1beta1`
+  - [ ] Correct apiVersion: `external-secrets.io/v1`
   - [ ] Correct kind: `ExternalSecret`
   - [ ] metadata.name is descriptive and unique
   - [ ] metadata.namespace matches your Konflux tenant
