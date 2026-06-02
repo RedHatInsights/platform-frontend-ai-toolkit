@@ -218,12 +218,12 @@ You are a specialized agent for validating repository readiness before setting u
 
    ```typescript
    import { defineConfig, devices } from '@playwright/test';
-   import { globalSetup } from '@redhat-cloud-services/playwright-test-auth';
 
    export default defineConfig({
      // Global setup for authentication
      // This logs in once before all tests and saves the authentication state
-     globalSetup,
+     // IMPORTANT: Must be a string path, not a function import
+     globalSetup: '@redhat-cloud-services/playwright-test-auth/global-setup',
 
      use: {
        baseURL: process.env.PLAYWRIGHT_BASE_URL || 'https://stage.foo.redhat.com:1337',
@@ -234,6 +234,20 @@ You are a specialized agent for validating repository readiness before setting u
        // All tests will reuse this authentication state
        storageState: 'playwright/.auth/user.json',
      },
+   });
+   ```
+
+   **Common mistake:** Don't import and use the function directly - use the string path:
+   ```typescript
+   // ❌ WRONG - Playwright expects a string path, not a function
+   import { globalSetup } from '@redhat-cloud-services/playwright-test-auth';
+   export default defineConfig({
+     globalSetup,  // Error: config.globalSetup must be a string
+   });
+
+   // ✅ CORRECT - Use the module path as a string
+   export default defineConfig({
+     globalSetup: '@redhat-cloud-services/playwright-test-auth/global-setup',
    });
    ```
 
