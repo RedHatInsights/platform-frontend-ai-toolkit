@@ -209,6 +209,72 @@ You are a specialized agent for validating repository readiness before setting u
    - Sharing of login/auth session across specs and tests
    - Consistency in approach across tests
 
+4. **CRITICAL: Configure authentication in playwright.config.ts:**
+
+   The playwright-test-auth package provides a `globalSetup` function that authenticates once
+   before all tests run and saves the session state. Tests automatically reuse this state.
+
+   **Verify playwright.config.ts has proper configuration:**
+
+   ```typescript
+   import { defineConfig, devices } from '@playwright/test';
+   import { globalSetup } from '@redhat-cloud-services/playwright-test-auth';
+
+   export default defineConfig({
+     // Global setup for authentication
+     // This logs in once before all tests and saves the authentication state
+     globalSetup,
+
+     use: {
+       baseURL: process.env.PLAYWRIGHT_BASE_URL || 'https://stage.foo.redhat.com:1337',
+       ignoreHTTPSErrors: true,
+
+       // Storage state for authenticated sessions
+       // Global setup will authenticate and save to this file
+       // All tests will reuse this authentication state
+       storageState: 'playwright/.auth/user.json',
+     },
+   });
+   ```
+
+   **What this does:**
+   - `globalSetup`: Runs once before all tests, authenticates with Red Hat SSO, saves session
+   - `storageState`: Path where authentication cookies/localStorage are saved
+   - Tests automatically load the storageState and are pre-authenticated
+
+   **Important:** Add `playwright/.auth` to `.gitignore` to prevent committing auth state:
+   ```bash
+   echo "playwright/.auth" >> .gitignore
+   ```
+
+5. **Verify tests use the authentication fixture correctly:**
+
+   Tests should NOT manually call login functions. The globalSetup handles authentication automatically.
+
+   ```typescript
+   // ✅ CORRECT - tests are automatically authenticated
+   import { test, expect } from '@playwright/test';
+
+   test('my test', async ({ page }) => {
+     await page.goto('/');  // Already authenticated via globalSetup
+     // Test code here
+   });
+
+   // ❌ WRONG - don't manually import or call login
+   import { login } from '@redhat-cloud-services/playwright-test-auth';
+
+   test('my test', async ({ page }) => {
+     await page.goto('/');
+     await login(page, user, password);  // DON'T DO THIS
+   });
+   ```
+
+   **How it works:**
+   - Environment variables `E2E_USER` and `E2E_PASSWORD` are used by globalSetup
+   - globalSetup authenticates once and saves to `storageState` file
+   - Each test loads the storageState automatically and is pre-authenticated
+   - No need to call login() in individual tests
+
 **CRITICAL VERSION ALIGNMENT: Three versions must match:**
 
 This is the most common source of pipeline failures. Verify alignment across:
