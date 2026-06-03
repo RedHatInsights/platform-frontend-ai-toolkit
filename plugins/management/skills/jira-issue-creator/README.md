@@ -149,7 +149,7 @@ Output is validated JSON for `jira_create_issue` MCP call (assignee included, de
 - **Activity Type**: Claude determines from context OR auto-detected from keywords
 - **Security Level**: auto-set for Security & Compliance activity type
 - **Labels**: 
-  - Bot tickets: `hcc-ai-framework` + validated repo:* labels
+  - Bot tickets: `hcc-ai-bot` + validated repo:* labels
   - User assignments: NO labels
   - Unassigned tickets: NO labels
 - **Repo labels**: fetched from GitHub, cached in `~/.cache/claude/jira-creator/`
@@ -175,7 +175,7 @@ Falls back to keyword detection if Claude doesn't provide type.
 
 | Assignee Selection | assignee_type | Label Behavior | MCP Calls |
 |-------------------|---------------|----------------|-----------|
-| Bot | bot | Add hcc-ai-framework + repo:* labels | `jira_get_user_profile` (bot), `jira_create_issue` |
+| Bot | bot | Add hcc-ai-bot + repo:* labels | `jira_get_user_profile` (bot), `jira_create_issue` |
 | Specific user (from hint or Other field) | user | NO labels | `jira_get_user_profile` (if needed), `jira_create_issue` |
 | Unassigned | unassigned | NO labels | `jira_create_issue` only |
 

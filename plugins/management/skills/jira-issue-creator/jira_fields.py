@@ -28,7 +28,7 @@ TEAMS = {
 }
 
 # Bot-specific label
-BOT_LABEL = "hcc-ai-framework"
+BOT_LABEL = "hcc-ai-bot"
 
 # Activity type mapping
 ACTIVITY_TYPES = {
