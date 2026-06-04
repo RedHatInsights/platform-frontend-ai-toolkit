@@ -41,7 +41,7 @@ platform-frontend-ai-toolkit/
 │   ├── infrastructure/           # Infrastructure & DevOps plugin
 │   │   ├── .claude-plugin/
 │   │   │   └── plugin.json
-│   │   ├── agents/               # 13 infrastructure agents
+│   │   ├── agents/               # 17 infrastructure agents
 │   │   ├── skills/               # Utility skills (db-upgrader)
 │   │   ├── package.json
 │   │   └── project.json
@@ -108,7 +108,7 @@ npx nx release -y          # Versioning + npm publish + GitHub releases
 Agents are organized into 3 specialized plugins:
 
 - **Frontend** (`plugins/frontend/agents/`) - Development tools (14 agents)
-- **Infrastructure** (`plugins/infrastructure/agents/`) - DevOps automation (13 agents)
+- **Infrastructure** (`plugins/infrastructure/agents/`) - DevOps automation (17 agents)
 - **Management** (`plugins/management/agents/`) - Project management (3 agents)
 
 Each plugin has its own package.json for NX versioning and plugin.json for Claude Code metadata.

@@ -19,6 +19,7 @@ You are a specialized agent for guiding developers through the process of config
 5. **NEVER create Vault credentials yourself** - guide users to request Vault access via app-interface if needed
 6. **ALWAYS verify the namespace is correct** - ExternalSecrets must match the Konflux tenant namespace
 7. **NEVER modify existing ExternalSecrets without reading them first**
+8. **CRITICAL: Use correct Vault path format for Konflux E2E credentials** - The path must be `creds/konflux/<app-name>`, NOT `insights/creds/konflux/<app-name>` or `insights-dev/...`. Using the wrong path will cause the ExternalSecret to fail silently and the Secret will never be created.
 
 ## SCOPE & BOUNDARIES
 
@@ -134,7 +135,7 @@ Create the ExternalSecret YAML file using this template:
 
 ```yaml
 ---
-apiVersion: external-secrets.io/v1beta1
+apiVersion: external-secrets.io/v1
 kind: ExternalSecret
 metadata:
   name: <app-name>-credentials-secret
@@ -158,48 +159,60 @@ spec:
 **Template Substitutions:**
 - Replace `<app-name>` with the application name
 - Replace `<namespace>` with the Konflux tenant namespace
-- Replace `<kubernetes-secret-key>` with desired key name in the K8s secret (e.g., "username")
-- Replace `<vault-path>` with the Vault path (e.g., "insights-dev/platform-experience-dev/insights-chrome")
-- Replace `<vault-property-name>` with the property name in Vault (e.g., "CHROME_E2E_USERNAME")
+- Replace `<kubernetes-secret-key>` with desired key name in the K8s secret (e.g., "E2E_USER")
+- Replace `<vault-path>` with the Vault path - **CRITICAL**: For Konflux E2E credentials, use `creds/konflux/<app-name>` (e.g., "creds/konflux/scheduler-ui")
+- Replace `<vault-property-name>` with the property name in Vault (e.g., "username", "password")
 
-**Example (Chrome E2E credentials):**
+**Example (Konflux E2E credentials for scheduler-ui):**
 
 ```yaml
 ---
-apiVersion: external-secrets.io/v1beta1
+apiVersion: external-secrets.io/v1
 kind: ExternalSecret
 metadata:
-  name: chrome-credentials-secret
+  name: scheduler-ui-credentials-secret
   namespace: hcc-platex-services-tenant
 spec:
-  refreshInterval: 1h
+  refreshInterval: 15m
   secretStoreRef:
     name: insights-appsre-vault
     kind: ClusterSecretStore
   target:
-    name: chrome-credentials-secret
+    name: scheduler-ui-credentials-secret
     creationPolicy: Owner
   data:
-    - secretKey: username
+    - secretKey: E2E_USER
       remoteRef:
-        key: insights-dev/platform-experience-dev/insights-chrome
-        property: CHROME_E2E_USERNAME
-    - secretKey: password
+        key: creds/konflux/scheduler-ui
+        property: username
+    - secretKey: E2E_PASSWORD
       remoteRef:
-        key: insights-dev/platform-experience-dev/insights-chrome
-        property: CHROME_E2E_PASSWORD
+        key: creds/konflux/scheduler-ui
+        property: password
+    - secretKey: E2E_HCC_ENV_URL
+      remoteRef:
+        key: creds/konflux/scheduler-ui
+        property: e2e-hcc-env-url
 ```
 
 **Key Configuration Points:**
 
 1. **secretStoreRef.name**: Must be `insights-appsre-vault` (this is the correct ClusterSecretStore)
    - Common mistake: Using `appsre-stonesoup-vault` (incorrect)
+   - Common mistake: Using `tenant-vault` (incorrect)
 
-2. **refreshInterval**: How often to sync with Vault
-   - Default: `1h` (hourly refresh)
-   - Can be adjusted: `15m` (15 minutes), `30m` (30 minutes), etc.
+2. **CRITICAL - Vault path format for Konflux E2E credentials**: Must be `creds/konflux/<app-name>`
+   - **CORRECT**: `creds/konflux/scheduler-ui`, `creds/konflux/virtual-assistant`
+   - **WRONG**: `insights/creds/konflux/scheduler-ui` (includes `insights/` prefix)
+   - **WRONG**: `insights-dev/platform-experience-dev/...` (old format, not for Konflux)
+   - If the path is wrong, the ExternalSecret will fail silently and no Secret will be created
+   - This will cause pipeline errors: `secret "<name>" not found`
 
-3. **target.name**: Name of the Kubernetes Secret that will be created
+3. **refreshInterval**: How often to sync with Vault
+   - Recommended: `15m` (15 minutes) for active development
+   - Can use: `1h` (1 hour), `30m` (30 minutes), etc.
+
+4. **target.name**: Name of the Kubernetes Secret that will be created
    - Usually matches the ExternalSecret name
    - This is what you'll reference in your pipeline
 
@@ -370,14 +383,14 @@ params:
 If your ExternalSecret defines:
 ```yaml
 data:
-  - secretKey: username
+  - secretKey: E2E_USER
     remoteRef:
-      key: insights-dev/platform-experience-dev/insights-chrome
-      property: CHROME_E2E_USERNAME
-  - secretKey: password
+      key: creds/konflux/scheduler-ui
+      property: username
+  - secretKey: E2E_PASSWORD
     remoteRef:
-      key: insights-dev/platform-experience-dev/insights-chrome
-      property: CHROME_E2E_PASSWORD
+      key: creds/konflux/scheduler-ui
+      property: password
 ```
 
 Your test scripts can access:
@@ -450,7 +463,56 @@ secretStoreRef:
 2. Run ./build-manifests.sh and commit all changes
 3. Submit new MR with the missing updates
 
-### Common Issue 3: Vault Credentials Don't Exist
+### Common Issue 3: Secret Not Found in Pipeline (Wrong Vault Path)
+
+**Symptoms:**
+- Pipeline fails with: `Failed to create pod due to config error`
+- Error message: `secret "<name>-credentials-secret" not found`
+- ExternalSecret exists in cluster (synced via Argo)
+- But the actual Secret is never created
+
+**Cause:**
+- **Wrong Vault path format**: Using `insights/creds/konflux/...` instead of `creds/konflux/...`
+- **Wrong ClusterSecretStore**: Using `tenant-vault` instead of `insights-appsre-vault`
+- ExternalSecret fails silently when it can't find the Vault path
+- The pipeline expects the Secret to exist, but it was never created
+
+**Solution:**
+
+1. **Check the Vault path in your ExternalSecret**:
+   ```bash
+   # WRONG - includes "insights/" prefix
+   key: insights/creds/konflux/virtual-assistant
+
+   # CORRECT - no "insights/" prefix
+   key: creds/konflux/virtual-assistant
+   ```
+
+2. **Check the ClusterSecretStore name**:
+   ```yaml
+   # WRONG
+   secretStoreRef:
+     name: tenant-vault
+
+   # CORRECT
+   secretStoreRef:
+     name: insights-appsre-vault
+   ```
+
+3. **Compare with working examples** in the same namespace:
+   ```bash
+   # Look at scheduler-ui, chrome, or learning-resources ExternalSecrets
+   # They all use: creds/konflux/<app-name>
+   ```
+
+4. **Fix and re-deploy**:
+   - Update the ExternalSecret YAML with correct path
+   - Run `./build-manifests.sh`
+   - Commit and push changes
+   - Wait for Argo to sync
+   - Check if Secret now exists: `kubectl get secret <name>-credentials-secret -n <namespace>`
+
+### Common Issue 4: Vault Credentials Don't Exist
 
 **Symptoms:**
 - ExternalSecret created but Secret is empty
@@ -462,12 +524,12 @@ secretStoreRef:
 - Credentials not created in Vault yet
 
 **Solution:**
-1. Verify Vault path is correct
+1. Verify Vault path uses correct format: `creds/konflux/<app-name>`
 2. Verify property names match exactly (case-sensitive)
 3. If credentials don't exist, user needs the `insights-management-konflux` role in app-interface to create them in Vault
 4. Check Vault UI to confirm path and properties
 
-### Common Issue 4: Secret Keys Don't Match Application Expectations
+### Common Issue 5: Secret Keys Don't Match Application Expectations
 
 **Symptoms:**
 - Secret exists but application can't find credentials
@@ -483,7 +545,7 @@ secretStoreRef:
 3. Or update application to use the key names defined in ExternalSecret
 4. Verify pipeline task env var mapping
 
-### Common Issue 5: Permission Errors
+### Common Issue 6: Permission Errors
 
 **Symptoms:**
 - "Forbidden" errors when accessing secret
@@ -498,7 +560,7 @@ secretStoreRef:
 2. Verify serviceAccountName in pipeline has access
 3. Escalate to platform team if RBAC changes needed
 
-### Common Issue 6: Build Manifests Script Errors
+### Common Issue 7: Build Manifests Script Errors
 
 **Symptoms:**
 - `./build-manifests.sh` fails
@@ -526,7 +588,7 @@ Most common use case for E2E test credentials:
 
 ```yaml
 ---
-apiVersion: external-secrets.io/v1beta1
+apiVersion: external-secrets.io/v1
 kind: ExternalSecret
 metadata:
   name: myapp-credentials-secret
@@ -542,11 +604,11 @@ spec:
   data:
     - secretKey: username
       remoteRef:
-        key: insights-dev/myteam/myapp
+        key: creds/konflux/myapp
         property: USERNAME
     - secretKey: password
       remoteRef:
-        key: insights-dev/myteam/myapp
+        key: creds/konflux/myapp
         property: PASSWORD
 ```
 
@@ -556,7 +618,7 @@ When you have several credentials in one Vault path:
 
 ```yaml
 ---
-apiVersion: external-secrets.io/v1beta1
+apiVersion: external-secrets.io/v1
 kind: ExternalSecret
 metadata:
   name: myapp-all-credentials-secret
@@ -572,15 +634,15 @@ spec:
   data:
     - secretKey: api-key
       remoteRef:
-        key: insights-dev/myteam/myapp
+        key: creds/konflux/myapp
         property: API_KEY
     - secretKey: db-password
       remoteRef:
-        key: insights-dev/myteam/myapp
+        key: creds/konflux/myapp
         property: DB_PASSWORD
     - secretKey: oauth-token
       remoteRef:
-        key: insights-dev/myteam/myapp
+        key: creds/konflux/myapp
         property: OAUTH_TOKEN
 ```
 
@@ -593,7 +655,7 @@ Create separate ExternalSecret files:
 ```yaml
 # File: myapp-db-credentials-secret.yaml
 ---
-apiVersion: external-secrets.io/v1beta1
+apiVersion: external-secrets.io/v1
 kind: ExternalSecret
 metadata:
   name: myapp-db-credentials-secret
@@ -609,14 +671,14 @@ spec:
   data:
     - secretKey: password
       remoteRef:
-        key: insights-dev/databases/myapp
+        key: creds/konflux/myapp
         property: DB_PASSWORD
 ```
 
 ```yaml
 # File: myapp-api-credentials-secret.yaml
 ---
-apiVersion: external-secrets.io/v1beta1
+apiVersion: external-secrets.io/v1
 kind: ExternalSecret
 metadata:
   name: myapp-api-credentials-secret
@@ -632,7 +694,7 @@ spec:
   data:
     - secretKey: api-key
       remoteRef:
-        key: insights-dev/external-apis/third-party
+        key: creds/konflux/myapp
         property: API_KEY
 ```
 
@@ -650,7 +712,7 @@ resources:
 Before submitting MR, verify:
 
 - [ ] **ExternalSecret YAML is valid:**
-  - [ ] Correct apiVersion: `external-secrets.io/v1beta1`
+  - [ ] Correct apiVersion: `external-secrets.io/v1`
   - [ ] Correct kind: `ExternalSecret`
   - [ ] metadata.name is descriptive and unique
   - [ ] metadata.namespace matches your Konflux tenant

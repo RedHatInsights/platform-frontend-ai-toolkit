@@ -242,6 +242,25 @@ Use hcc-frontend-playwright-test-finalizer to generate docs and create PR for in
 
 📋 **For detailed database upgrade documentation**, see: [DB_UPGRADE_AGENTS.md](DB_UPGRADE_AGENTS.md)
 
+### Konflux E2E Pipeline Setup Agents
+
+The toolkit includes specialized agents for setting up Konflux E2E test pipelines:
+
+- **hcc-frontend-konflux-e2e-pipeline-setup** - Orchestrator that directs developers to appropriate focused agents for Konflux E2E setup
+- **hcc-frontend-konflux-e2e-prerequisites-validator** - Validates repository readiness before pipeline setup (Playwright installation, version alignment, test command validation)
+- **hcc-frontend-konflux-local-testing-guide** - Guides minikube local testing setup for E2E pipelines
+- **hcc-frontend-konflux-pipeline-configurator** - Configures Konflux pipeline YAML for E2E testing (parameters, scripts, two-phase PR submission)
+- **hcc-frontend-konflux-configmap-generator** - Generates ConfigMaps using Plumber and creates ExternalSecrets for Vault credentials
+
+**These agents help with:**
+- Validating Playwright installation and configuration
+- Checking three-way version alignment (package.json, auth package, Docker image)
+- Setting up local minikube testing environment
+- Configuring pipeline YAML with all required parameters
+- Generating proxy ConfigMaps automatically using Plumber
+- Creating ExternalSecrets for Vault credentials
+- Ensuring correct two-phase PR submission workflow
+
 All agents use either the `hcc-frontend-` or `hcc-infra-` prefix to avoid name collisions with other plugins and built-in agents.
 
 ### Frontend Operator (FEO) Configuration Agents
@@ -525,7 +544,7 @@ platform-frontend-ai-toolkit/
 │   ├── infrastructure/               # Infrastructure & DevOps plugin
 │   │   ├── .claude-plugin/
 │   │   │   └── plugin.json
-│   │   ├── agents/                   # 13 infrastructure agents
+│   │   ├── agents/                   # 17 infrastructure agents
 │   │   ├── skills/                   # Utility skills (db-upgrader)
 │   │   ├── package.json
 │   │   └── project.json
