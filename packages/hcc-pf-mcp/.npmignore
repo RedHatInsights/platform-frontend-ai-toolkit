@@ -2,6 +2,9 @@
 src/
 *.ts
 !*.d.ts
+/*.js
+packages/*/**/*.js
+!packages/*/dist/**/*.js
 
 # Tests
 **/__tests__/
