@@ -19,6 +19,8 @@ project.json
 .gitignore
 .prettierrc
 .prettierignore
+.vscode/
+/*.js
 
 # Documentation (except README.md and LICENSE, included via files field)
 TESTING.md
