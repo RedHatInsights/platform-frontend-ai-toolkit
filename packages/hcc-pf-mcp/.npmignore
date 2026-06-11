@@ -2,9 +2,8 @@
 src/
 *.ts
 !*.d.ts
-/*.js
-packages/*/**/*.js
-!packages/*/dist/**/*.js
+**/*.js
+!dist/**/*.js
 
 # Tests
 **/__tests__/
@@ -23,7 +22,6 @@ project.json
 .prettierrc
 .prettierignore
 .vscode/
-/*.js
 
 # Documentation (except README.md and LICENSE, included via files field)
 TESTING.md
