@@ -4,7 +4,6 @@ on:
   push:
     branches:
       - master
-  workflow_dispatch:
 
 permissions:
   contents: read
@@ -15,6 +14,7 @@ jobs:
     name: Release Packages
     # Only run on push to master branch (never on workflow_dispatch, etc.)
     if: github.event_name == 'push' && github.ref == 'refs/heads/master'
+    environment: npm-publish
     permissions:
       contents: write  # Needed for creating tags and GitHub releases
       id-token: write  # Needed for OIDC token generation (npm trusted publishing)
