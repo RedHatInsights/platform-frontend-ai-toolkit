@@ -162,6 +162,7 @@ The repository uses **automated versioning** for both plugins and packages:
 8. **Version bumps**: **AUTOMATED** - plugin versions auto-increment on master merge based on conventional commits. No manual bumping required.
 9. **Test colocation**: Tests live in `src/lib/__tests__/` within each package
 10. **Dependencies**: MCP servers must include `zod` as a dependency (MCP SDK requirement)
+11. **Package publishing**: All MCP packages use `.npmignore` files to exclude development artifacts. Only `dist/`, `README.md`, and `LICENSE` are published to npm (controlled via `files` field in package.json)
 
 ## Common Pitfalls
 
@@ -172,6 +173,7 @@ The repository uses **automated versioning** for both plugins and packages:
 5. **Agent too broad**: Agents should be focused on specific tasks, not general-purpose (see AGENT_GUIDELINES.md for examples)
 6. **NX cache stale**: After major changes, run `npx nx reset` to clear the NX daemon cache
 7. **System dep for builds**: CI requires `libsecret-1-dev` for builds — documented in CI workflow
+8. **Modifying .npmignore**: `.npmignore` files are protected in CODEOWNERS and require `@RedHatInsights/experience-services-admins` approval to prevent accidental inclusion of development files in published packages
 
 ## Documentation Index
 
